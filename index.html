@@ -8,10 +8,7 @@
   <link rel="manifest" href="manifest.json">
   <link rel="icon" href="icon-192.png">
   <link rel="stylesheet" href="styles.css">
-
-  <!-- Tesseract OCR -->
   <script src="https://unpkg.com/tesseract.js@v5.0.3/dist/tesseract.min.js"></script>
-  <!-- APKG exporter -->
   <script src="https://cdn.jsdelivr.net/npm/anki-apkg-export@3.2.1/dist/anki-apkg-export.min.js"></script>
 </head>
 <body>
@@ -27,17 +24,22 @@
   <main>
     <section class="panel glass">
       <h2>Create image occlusion cards</h2>
-      <div class="uploader">
-        <label class="fileBtn">
-          <input type="file" id="imageInput" accept="image/*"> Choose image
-        </label>
-        <button id="scanOcrBtn" class="btn">OCR scan</button>
-        <button id="autoOccludeBtn" class="btn">Auto occlude labels</button>
-        <button id="addMaskBtn" class="btn">Add mask</button>
-        <button id="bulkCreateBtn" class="btn">Create cards</button>
-        <button id="oneClickDeckBtn" class="btn primary">Generate occlusion deck</button>
+      <div class="editorPane">
+        <div class="editorTop">
+          <label class="fileBtn big">
+            <input type="file" id="imageInput" accept="image/*"> Choose image from Photos / Files
+          </label>
+          <button id="scanOcrBtn" class="btn">OCR scan</button>
+          <button id="autoOccludeBtn" class="btn">Auto occlude labels</button>
+          <button id="oneClickDeckBtn" class="btn primary">Generate occlusion deck</button>
+        </div>
+        <div class="editorCanvasWrap">
+          <canvas id="imgCanvas"></canvas>
+          <canvas id="maskCanvas"></canvas>
+        </div>
+        <div id="progressBar" class="progress hidden"><div id="progressFill"></div><span id="progressText"></span></div>
+        <div id="busyOverlay" class="busy hidden">Working…</div>
       </div>
-
       <div class="editToolbar">
         <span class="chip">Tap mask to select</span>
         <span class="chip">Drag to move</span>
@@ -47,12 +49,6 @@
         <button id="redoBtn" class="btn">Redo</button>
         <button id="resetViewBtn" class="btn">Reset view</button>
       </div>
-
-      <div class="canvasRow">
-        <canvas id="imgCanvas"></canvas>
-        <canvas id="maskCanvas"></canvas>
-      </div>
-
       <div id="ocrOutput" class="glass card"></div>
     </section>
 
