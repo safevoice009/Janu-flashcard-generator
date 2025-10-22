@@ -4,24 +4,19 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Anki Super-Generator</title>
-    <!-- 1. Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- 1. Tailwind CSS --><script src="https://cdn.tailwindcss.com"></script>
     
-    <!-- 2. Tesseract.js (for Image Occlusion) -->
-    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+    <!-- 2. Tesseract.js (for Image Occlusion) --><!-- IMPORTANT: Loading Tesseract.js worker from CDN for reliability on GitHub Pages --><script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
     
-    <!-- 3. genanki-js (for .apkg generation) -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <!-- 3. genanki-js (for .apkg generation) --><script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.3/sql-asm.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/genanki-js/dist/genanki.browser.js"></script>
     
-    <!-- 4. PDF.js (for PDF parsing) -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
+    <!-- 4. PDF.js (for PDF parsing) --><script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
     <script>pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';</script>
     
-    <!-- 5. Mammoth.js (for DOCX parsing) -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+    <!-- 5. Mammoth.js (for DOCX parsing) --><script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
 
     <style>
         body { font-family: 'Inter', sans-serif; }
@@ -42,8 +37,7 @@
 </head>
 <body class="bg-gray-100 text-gray-900">
 
-    <!-- === SETTINGS MODAL === -->
-    <div id="settings-modal" class="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center z-50">
+    <!-- === SETTINGS MODAL === --><div id="settings-modal" class="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center z-50">
         <div class="bg-white rounded-lg p-8 shadow-xl w-full max-w-2xl">
             <h2 class="text-2xl font-bold mb-4">Welcome! Set Up Your App</h2>
             <p class="mb-4 text-gray-600">Please paste your API key below. This app runs 100% in your browser, so your key is safe and only stored on your computer.</p>
@@ -56,16 +50,14 @@
         </div>
     </div>
     
-    <!-- === LOADING MODAL === -->
-    <div id="loading-modal" class="hidden fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center z-50">
+    <!-- === LOADING MODAL === --><div id="loading-modal" class="hidden fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center z-50">
         <div class="bg-white rounded-lg p-8 shadow-xl flex items-center space-x-4">
             <svg class="animate-spin h-8 w-8 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
             <div><h3 id="loading-status" class="text-xl font-medium">Please wait...</h3></div>
         </div>
     </div>
     
-    <!-- === HEADER & NAVIGATION === -->
-    <header class="bg-white shadow-md">
+    <!-- === HEADER & NAVIGATION === --><header class="bg-white shadow-md">
         <nav class="container mx-auto max-w-7xl flex items-center justify-between p-4">
             <h1 class="text-2xl font-bold text-blue-700">Anki Super-Generator</h1>
             <div class="flex space-x-2 md:space-x-6">
@@ -78,15 +70,12 @@
         </nav>
     </header>
 
-    <!-- === MAIN CONTENT === -->
-    <main class="container mx-auto max-w-7xl p-4 md:p-8">
+    <!-- === MAIN CONTENT === --><main class="container mx-auto max-w-7xl p-4 md:p-8">
 
-        <!-- === PAGE: HOME / CREATE === -->
-        <div id="page-home" class="page active">
+        <!-- === PAGE: HOME / CREATE === --><div id="page-home" class="page active">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 
-                <!-- Topic Generator -->
-                <div class="bg-white p-6 rounded-lg shadow-md">
+                <!-- Topic Generator --><div class="bg-white p-6 rounded-lg shadow-md">
                     <h2 class="text-2xl font-bold mb-4">Generate from Topic</h2>
                     <div class="space-y-4">
                         <div>
@@ -105,8 +94,7 @@
                     </div>
                 </div>
 
-                <!-- Text Generator -->
-                <div class="bg-white p-6 rounded-lg shadow-md">
+                <!-- Text Generator --><div class="bg-white p-6 rounded-lg shadow-md">
                     <h2 class="text-2xl font-bold mb-4">Generate from Text</h2>
                     <div class="space-y-4">
                         <div>
@@ -125,8 +113,7 @@
                     </div>
                 </div>
                 
-                <!-- File Generator -->
-                <div class="bg-white p-6 rounded-lg shadow-md md:col-span-2">
+                <!-- File Generator --><div class="bg-white p-6 rounded-lg shadow-md md:col-span-2">
                     <h2 class="text-2xl font-bold mb-4">Generate from File (PDF or DOCX)</h2>
                     <div class="space-y-4">
                         <div>
@@ -146,18 +133,15 @@
                 </div>
             </div>
             
-            <!-- Log Output -->
-            <div class="mt-6 bg-white p-6 rounded-lg shadow-md">
+            <!-- Log Output --><div class="mt-6 bg-white p-6 rounded-lg shadow-md">
                 <label class="block text-sm font-medium text-gray-700 mb-2">Generation Log</label>
                 <textarea id="log-output" rows="10" class="w-full p-2 bg-gray-900 text-green-400 font-mono text-sm rounded-md border border-gray-700" readonly>Waiting for task...</textarea>
             </div>
         </div>
 
-        <!-- === PAGE: IMAGE OCCLUSION === -->
-        <div id="page-image-gen" class="page">
+        <!-- === PAGE: IMAGE OCCLUSION === --><div id="page-image-gen" class="page">
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                <!-- IO Controls -->
-                <div class="lg:col-span-1 bg-white p-6 rounded-lg shadow-md h-fit">
+                <!-- IO Controls --><div class="lg:col-span-1 bg-white p-6 rounded-lg shadow-md h-fit">
                     <h2 class="text-2xl font-bold mb-4">Image Occlusion</h2>
                     <div>
                         <label for="io-image-upload" class="block text-sm font-medium text-gray-700 mb-2">1. Upload Image</label>
@@ -183,8 +167,7 @@
                         <button id="io-export-button" disabled class="w-full bg-green-600 text-white font-bold py-3 px-4 rounded-lg transition hover:bg-green-700 disabled:opacity-50 disabled:bg-gray-500">Generate .apkg File</button>
                     </div>
                 </div>
-                <!-- IO Display -->
-                <div class="lg:col-span-2 bg-white p-4 rounded-lg shadow-md flex items-center justify-center min-h-[600px]">
+                <!-- IO Display --><div class="lg:col-span-2 bg-white p-4 rounded-lg shadow-md flex items-center justify-center min-h-[600px]">
                     <div id="io-image-container" class="hidden">
                         <img id="io-display-image" src="" alt="Uploaded image"/>
                         <canvas id="io-canvas"></canvas>
@@ -199,8 +182,7 @@
 
     </main>
 
-    <!-- === JAVASCRIPT === -->
-    <script>
+    <!-- === JAVASCRIPT === --><script>
         // --- App State ---
         let SQL;
         let tesseractWorker = null;
@@ -550,16 +532,23 @@
         let io_ocrResults = [], io_selected = [];
         let io_isManual = false, io_isDrawing = false, io_manualRect = {};
 
+        // Updated initTesseractWorker to explicitly set workerPath and langdata path
         async function initTesseractWorker() {
             log("Loading AI model for Image Occlusion (Tesseract.js)...");
+            // Specify the workerPath and langdata path explicitly from CDN for better reliability
             tesseractWorker = await Tesseract.createWorker('eng', 1, {
+                workerPath: 'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/worker.min.js',
+                langPath: 'https://cdn.jsdelivr.net/npm/tesseract.js-lang/langdata',
                 logger: m => {
-                    if (m.status === 'recognizing text') {
+                    if (m.status === 'recognizing text' || m.status === 'loading eng.traineddata') {
                         showLoading(`Scanning image... ${Math.round(m.progress * 100)}%`);
+                    } else if (m.status === 'loading tesseract core') {
+                        showLoading(`Loading Tesseract core...`);
                     }
                 }
             });
             log("Image Occlusion AI loaded.");
+            hideLoading(); // Hide loading after Tesseract is fully loaded
         }
 
         io.upload.addEventListener('change', (e) => {
@@ -582,12 +571,13 @@
 
         io.scanBtn.addEventListener('click', async () => {
             if (!tesseractWorker) { alert("AI Model is not ready. Please wait."); return; }
-            showLoading("Scanning image for text...");
+            showLoading("Scanning image for text..."); // This will be updated by Tesseract's logger
             try {
                 const { data } = await tesseractWorker.recognize(io.image.src);
                 io_ocrResults = data.lines.concat(data.words);
                 io_drawBoxes();
-            } catch (err) { console.error(err); } finally { hideLoading(); }
+            } catch (err) { console.error(err); log(`ERROR: Image scanning failed. ${err.message}`); } 
+            finally { hideLoading(); }
         });
 
         io.manualToggle.addEventListener('change', (e) => {
@@ -621,7 +611,10 @@
             }
         }
         function io_addOcclusion(text, bbox) {
-            if (io_selected.some(o => o.text === text)) return;
+            // Check if text already exists to avoid duplicates
+            if (io_selected.some(o => o.text === text && JSON.stringify(o.bbox) === JSON.stringify(bbox))) {
+                return; 
+            }
             io_selected.push({ text, bbox }); io_updateList();
         }
         function io_removeOcclusion(text) {
@@ -673,10 +666,15 @@
             for (const item of io_ocrResults) {
                 const { bbox } = item;
                 if (x >= bbox.x0 && x <= bbox.x1 && y >= bbox.y0 && y <= bbox.y1) {
-                    const idx = io_selected.findIndex(o => o.bbox && o.bbox.x0 === bbox.x0);
-                    if (idx > -1) io_selected.splice(idx, 1);
-                    else io_addOcclusion(item.text.trim(), bbox);
-                    io_drawBoxes(); return;
+                    // Check if already selected, then remove
+                    const existingIndex = io_selected.findIndex(o => o.bbox && o.bbox.x0 === bbox.x0 && o.bbox.y0 === bbox.y0);
+                    if (existingIndex > -1) {
+                        io_selected.splice(existingIndex, 1);
+                    } else {
+                        io_addOcclusion(item.text.trim(), bbox);
+                    }
+                    io_drawBoxes(); // Redraw to update highlights
+                    return;
                 }
             }
         });
@@ -687,10 +685,18 @@
                 const clozeModel = genanki.Model.CLOZE_MODEL;
                 const deckName = io.deckName.value || 'Image Occlusion Deck';
                 const deck = new genanki.Deck(Date.now(), deckName);
+                
+                // Convert image Blob to Base64 data URL for embedding
+                const reader = new FileReader();
+                reader.readAsDataURL(io_imageBlob);
+                await new Promise(resolve => reader.onloadend = resolve);
+                const imageDataUrl = reader.result;
+
                 const mediaFiles = [{ name: io_imageFilename, data: io_imageBlob }];
+                
                 let clozeText = '';
                 io_selected.forEach((occ, i) => {
-                    const cleanText = occ.text.replace(/{/g, '{{c' + (i+1) + '::').replace(/}/g, '}}');
+                    const cleanText = occ.text.replace(/{/g, '').replace(/}/g, ''); // Ensure no existing Anki cloze syntax
                     clozeText += `{{c${i+1}::${cleanText}}} `;
                 });
                 const noteText = `${clozeText}<br><br><img src="${io_imageFilename}">`;
@@ -707,3 +713,4 @@
     </script>
 </body>
 </html>
+
