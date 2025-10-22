@@ -1,3 +1,45 @@
+// Place at the very top of script.js
+document.addEventListener('DOMContentLoaded', () => {
+  // call your init function (rename or create if missing)
+  if (typeof appInit === 'function') return appInit();
+  // fallback: basic safe init
+  try { initializeApp && initializeApp(); } catch(e){ console.warn('init fallback', e); }
+});
+// Add this once in script.js (above other logic or just after DOMContentLoaded handler)
+function initializeApp(){
+  // confirm DOM elements exist
+  const ids = ['imageInput','scanOcrBtn','autoOccludeBtn','oneClickDeckBtn','bulkCreateBtn','exportApkgBtn','undoBtn','redoBtn','resetViewBtn'];
+  ids.forEach(id => {
+    if(!document.getElementById(id)) console.warn('Missing element:', id);
+  });
+
+  // bind if not already bound
+  document.getElementById('imageInput')?.addEventListener('change', imageInputChangeHandler);
+  document.getElementById('scanOcrBtn')?.addEventListener('click', scanOcrHandler);
+  document.getElementById('autoOccludeBtn')?.addEventListener('click', autoOccludeHandler);
+  document.getElementById('oneClickDeckBtn')?.addEventListener('click', oneClickDeckHandler);
+  document.getElementById('bulkCreateBtn')?.addEventListener('click', bulkCreateHandler);
+  document.getElementById('exportApkgBtn')?.addEventListener('click', exportHandler);
+  document.getElementById('undoBtn')?.addEventListener('click', undo);
+  document.getElementById('redoBtn')?.addEventListener('click', redo);
+  document.getElementById('resetViewBtn')?.addEventListener('click', () => { view = {scale:1,offsetX:0,offsetY:0}; drawImage(); drawMasks(); });
+
+  // ensure canvases accept pointer events on mobile
+  const maskCanvas = document.getElementById('maskCanvas');
+  if(maskCanvas){
+    maskCanvas.style.touchAction = 'none';
+    maskCanvas.style.zIndex = '20';
+  }
+  const imgCanvas = document.getElementById('imgCanvas');
+  if(imgCanvas) imgCanvas.style.zIndex = '10';
+
+  // set footer to fixed if needed
+  const footer = document.querySelector('.footer');
+  if(footer) { footer.style.position = 'fixed'; footer.style.left='0'; footer.style.right='0'; footer.style.bottom='0'; footer.style.zIndex = '9999'; }
+
+  // call any existing post-init tasks
+  if (typeof postInit === 'function') postInit();
+}
 /* OccludeX — replacement script.js
    - Full single-file logic for image occlusion editor
    - Fixes: persistent masks, stable event wiring, DPR-aligned input,
