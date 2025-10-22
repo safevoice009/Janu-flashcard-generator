@@ -3,11 +3,12 @@
 <head>
   <meta charset="utf-8">
   <title>OccludeX — Free AI Anki Image Occlusion</title>
-  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#0a0a0a">
   <link rel="manifest" href="manifest.json">
-  <link rel="icon" href="icons/icon-192.png">
+  <link rel="icon" href="icon-192.png">
   <link rel="stylesheet" href="styles.css">
+
   <!-- Tesseract OCR -->
   <script src="https://unpkg.com/tesseract.js@v5.0.3/dist/tesseract.min.js"></script>
   <!-- APKG exporter -->
@@ -27,21 +28,27 @@
     <section class="panel glass">
       <h2>Create image occlusion cards</h2>
       <div class="uploader">
-        <input type="file" id="imageInput" accept="image/*">
+        <label class="fileBtn">
+          <input type="file" id="imageInput" accept="image/*"> Choose image
+        </label>
         <button id="scanOcrBtn" class="btn">OCR scan</button>
         <button id="autoOccludeBtn" class="btn">Auto occlude text</button>
         <button id="addMaskBtn" class="btn">Add mask</button>
         <button id="bulkCreateBtn" class="btn primary">Create cards</button>
       </div>
+
+      <div class="editToolbar">
+        <span class="chip">Tap mask to select</span>
+        <span class="chip">Drag to move</span>
+        <span class="chip">Drag corners to resize</span>
+        <span class="chip danger">Double-tap = delete</span>
+      </div>
+
       <div class="canvasRow">
         <canvas id="imgCanvas"></canvas>
         <canvas id="maskCanvas"></canvas>
       </div>
-      <div class="legend">
-        <span class="chip">Drag to add rectangles</span>
-        <span class="chip">Shift+drag = duplicate</span>
-        <span class="chip danger">Right-click = delete</span>
-      </div>
+
       <div id="ocrOutput" class="glass card"></div>
     </section>
 
@@ -55,6 +62,7 @@
           <option value="mcq">MCQ</option>
         </select>
         <button id="generateAiBtn" class="btn">Generate from OCR text</button>
+        <button id="suggestOccludeBtn" class="btn">Suggest occlusions (AI)</button>
       </div>
       <textarea id="aiSourceText" placeholder="Paste text or use OCR above"></textarea>
       <div id="aiCards" class="grid"></div>
