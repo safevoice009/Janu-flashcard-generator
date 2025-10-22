@@ -5,36 +5,22 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Anki Super-Generator</title>
     
-    <!-- 1. Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- 1. Tailwind CSS --><script src="https://cdn.tailwindcss.com"></script>
     
-    <!-- 2. Tesseract.js (for Image Occlusion) -->
-    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+    <!-- 2. Tesseract.js (for Image Occlusion) --><script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
     
-    <!-- 3. genanki-js (for .apkg generation) -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <!-- 3. genanki-js (for .apkg generation) --><script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.3/sql-asm.js"></script>
-    <!-- 
-      FIX 1: Changed genanki.browser.js to genanki.js
-      The 'browser' version was not exporting the global 'genanki' variable correctly.
-      The 'genanki.js' file is the correct one to use from the CDN.
-    -->
-    <script src="https://cdn.jsdelivr.net/npm/genanki-js/dist/genanki.js"></script>
+    <!-- FIX: Corrected genanki.js path as genanki.browser.js caused issues --><script src="https://cdn.jsdelivr.net/npm/genanki-js/dist/genanki.js"></script>
     
-    <!-- 4. PDF.js (for PDF parsing) -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
+    <!-- 4. PDF.js (for PDF parsing) --><script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
     <script>pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';</script>
     
-    <!-- 5. Mammoth.js (for DOCX parsing) -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+    <!-- 5. Mammoth.js (for DOCX parsing) --><script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
 
-    <!-- 
-      FEATURE: Light/Dark Mode & Glassmorphism 
-      This script checks the user's system preference and applies dark mode immediately.
-      The CSS styles below are updated to support this and add the glass effect.
-    -->
-    <script>
+    <!-- Theme Initialization Script --><script>
+        // Check for saved theme or system preference and apply immediately
         if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
             document.documentElement.classList.add('dark');
         } else {
@@ -42,200 +28,239 @@
         }
     </script>
     <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
         body { font-family: 'Inter', sans-serif; }
+        
+        /* Navigation Buttons */
         .nav-button {
-            transition: all 0.2s;
-            border-bottom: 4px solid transparent;
-            @apply text-gray-500 dark:text-gray-400;
+            @apply px-4 py-2 text-lg font-semibold text-gray-600 dark:text-gray-300 border-b-4 border-transparent hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors duration-200;
         }
         .nav-button.active {
-            @apply border-indigo-500 text-indigo-600 dark:text-indigo-400;
+            @apply text-indigo-700 dark:text-indigo-500 border-indigo-500 dark:border-indigo-400;
         }
+        
+        /* Page Display Control */
         .page { display: none; }
         .page.active { display: block; }
         
-        /* Glassmorphism Card Style */
+        /* Glassmorphism Card Style - Applied to main functional blocks */
         .glass-card {
-            @apply bg-white/70 dark:bg-gray-800/70 backdrop-blur-md border border-gray-200 dark:border-gray-700 shadow-lg rounded-lg;
+            @apply relative p-6 rounded-2xl shadow-xl border border-gray-200/50 dark:border-gray-700/50 bg-white/60 dark:bg-gray-800/60 backdrop-blur-md transition-colors duration-300;
         }
         
-        /* Modal Backdrop Style */
+        /* Modal Backdrop Style - for settings and loading */
         .modal-backdrop {
-            @apply fixed inset-0 bg-gray-900/70 backdrop-blur-sm flex items-center justify-center z-50;
+            @apply fixed inset-0 bg-gray-900/60 dark:bg-black/70 backdrop-blur-sm flex items-center justify-center z-50;
         }
 
         /* Modal Content Style */
         .modal-content {
-            @apply bg-white dark:bg-gray-800 rounded-lg p-8 shadow-xl w-full;
+            @apply bg-white dark:bg-gray-900 rounded-xl p-8 shadow-2xl w-full max-w-lg transition-colors duration-300;
         }
         
-        /* Form Input Style */
+        /* Form Input Style - consistent look */
         .form-input {
-            @apply mt-1 block w-full border-gray-300 dark:border-gray-600 dark:bg-gray-900/50 dark:text-gray-100 rounded-md shadow-sm dark:placeholder-gray-500;
+            @apply mt-1 block w-full px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-lg shadow-sm bg-gray-50 dark:bg-gray-800 text-gray-800 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:ring-indigo-500 focus:border-indigo-500 transition-colors duration-200;
         }
         
-        /* Primary Button Style */
+        /* Primary Button Style - for actions */
         .btn-primary {
-            @apply w-full bg-indigo-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 transition-colors;
+            @apply w-full bg-indigo-600 text-white font-bold py-3 px-4 rounded-xl hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 transition-colors duration-200;
         }
 
-        #io-image-container { position: relative; width: 100%; max-width: 900px; margin: auto; }
-        #io-canvas { position: absolute; top: 0; left: 0; cursor: crosshair; }
-        #io-display-image { display: block; width: 100%; height: auto; }
+        /* Secondary Button Style - for file uploads etc. */
+        .btn-secondary-file {
+            @apply text-sm text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-900/40 hover:bg-indigo-100 dark:hover:bg-indigo-800/40 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-100 dark:file:bg-indigo-700 file:text-indigo-700 dark:file:text-indigo-100 hover:file:bg-indigo-200 dark:hover:file:bg-indigo-600 transition-colors duration-200;
+        }
+
+        /* Image Occlusion specific styles */
+        #io-image-container { 
+            position: relative; 
+            width: 100%; 
+            max-width: 900px; /* Adjust based on desired max image size */
+            margin: auto; 
+            background-color: transparent; /* Ensure it doesn't cover image */
+            user-select: none; /* Prevent image dragging/selection */
+        }
+        #io-canvas { 
+            position: absolute; 
+            top: 0; 
+            left: 0; 
+            cursor: crosshair;
+            /* Ensure canvas is transparent */
+            background-color: transparent;
+        }
+        #io-display-image { 
+            display: block; 
+            width: 100%; 
+            height: auto; 
+            object-fit: contain; /* Ensure image fits without cropping */
+            border-radius: 0.75rem; /* Match card border-radius */
+        }
+        #io-occlusion-list {
+            @apply bg-gray-50 dark:bg-gray-800/40 border border-gray-200 dark:border-gray-700 rounded-lg p-2 overflow-y-auto;
+        }
+        #io-occlusion-list div {
+            @apply p-2 bg-indigo-100 dark:bg-indigo-900/30 rounded-md text-sm mb-1 flex justify-between items-center text-gray-800 dark:text-gray-200;
+        }
+        #io-occlusion-list button {
+            @apply font-bold text-red-500 dark:text-red-400 pl-2;
+        }
     </style>
 </head>
-<body class="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100 transition-colors">
+<body class="bg-gradient-to-br from-blue-50 dark:from-gray-900 to-indigo-100 dark:to-gray-950 text-gray-900 dark:text-gray-100 min-h-screen transition-colors duration-300">
 
-    <!-- === SETTINGS MODAL === -->
-    <div id="settings-modal" class="modal-backdrop">
+    <!-- === SETTINGS MODAL === --><div id="settings-modal" class="modal-backdrop">
         <div class="modal-content max-w-2xl">
-            <h2 class="text-2xl font-bold mb-4 dark:text-white">Welcome! Set Up Your App</h2>
-            <p class="mb-4 text-gray-600 dark:text-gray-400">Please paste your API key below. This app runs 100% in your browser, so your key is safe and only stored on your computer.</p>
+            <h2 class="text-2xl font-bold mb-4 text-indigo-700 dark:text-indigo-400">Welcome! Set Up Your App</h2>
+            <p class="mb-4 text-gray-600 dark:text-gray-400">
+                To use the AI generation features, please paste your Google AI (Gemini) API key. 
+                This app runs 100% in your browser, so your key is safe and only stored on your computer.
+            </p>
             
             <label for="api-key" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Google AI (Gemini) API Key</label>
             <input type="password" id="api-key" class="form-input" placeholder="Paste Gemini API key">
-            <p class="text-xs text-gray-500 dark:text-gray-400 mt-1 mb-4">Get a free key from <a href="https://aistudio.google.com/app/apikey" target="_blank" class="text-indigo-600 dark:text-indigo-400 hover:underline">Google AI Studio</a>.</p>
+            <p class="text-xs text-gray-500 dark:text-gray-400 mt-1 mb-6">
+                Get a free key from <a href="https://aistudio.google.com/app/apikey" target="_blank" class="text-indigo-600 dark:text-indigo-400 hover:underline">Google AI Studio</a>.
+            </p>
             
-            <button id="save-settings" class="btn-primary py-2">Save and Start</button>
+            <button id="save-settings" class="btn-primary py-2">Save and Start Generating</button>
         </div>
     </div>
     
-    <!-- === LOADING MODAL === -->
-    <div id="loading-modal" class="modal-backdrop hidden">
-        <div class="bg-white dark:bg-gray-800 rounded-lg p-8 shadow-xl flex items-center space-x-4">
-            <svg class="animate-spin h-8 w-8 text-indigo-600 dark:text-indigo-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-            <div><h3 id="loading-status" class="text-xl font-medium dark:text-white">Please wait...</h3></div>
+    <!-- === LOADING MODAL === --><div id="loading-modal" class="modal-backdrop hidden">
+        <div class="modal-content max-w-sm flex flex-col items-center justify-center p-6 text-center">
+            <svg class="animate-spin h-10 w-10 text-indigo-600 dark:text-indigo-400 mb-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+            <h3 id="loading-status" class="text-xl font-medium text-gray-800 dark:text-gray-100">Please wait...</h3>
         </div>
     </div>
     
-    <!-- === HEADER & NAVIGATION === -->
-    <header class="glass-card sticky top-0 z-40">
-        <nav class="container mx-auto max-w-7xl flex items-center justify-between p-4">
-            <h1 class="text-2xl font-bold text-indigo-600 dark:text-indigo-400">Anki Super-Generator</h1>
-            <div class="flex space-x-2 md:space-x-6">
-                <button class="nav-button active" data-page="page-home">Create</button>
+    <!-- === HEADER & NAVIGATION === --><header class="sticky top-0 z-40 p-4">
+        <nav class="container mx-auto max-w-7xl flex items-center justify-between glass-card">
+            <h1 class="text-3xl font-bold text-indigo-700 dark:text-indigo-400 ml-4">AnkiGenius</h1>
+            <div class="flex flex-grow justify-center space-x-2 md:space-x-6">
+                <button class="nav-button active" data-page="page-home">Create Flashcards</button>
                 <button class="nav-button" data-page="page-image-gen">Image Occlusion</button>
             </div>
-            <button id="settings-button" class="text-gray-500 hover:text-indigo-600 dark:text-gray-400 dark:hover:text-indigo-400">
+            <button id="settings-button" class="text-gray-500 hover:text-indigo-600 dark:text-gray-400 dark:hover:text-indigo-400 mr-4 p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200">
                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826 3.31 2.37-2.37.996.608 2.296.096 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
             </button>
         </nav>
     </header>
 
-    <!-- === MAIN CONTENT === -->
-    <main class="container mx-auto max-w-7xl p-4 md:p-8">
+    <!-- === MAIN CONTENT === --><main class="container mx-auto max-w-7xl p-4 md:p-8">
 
-        <!-- === PAGE: HOME / CREATE === -->
-        <div id="page-home" class="page active">
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <!-- === PAGE: HOME / CREATE === --><div id="page-home" class="page active">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
                 
-                <!-- Topic Generator -->
-                <div class="glass-card p-6">
-                    <h2 class="text-2xl font-bold mb-4 dark:text-white">Generate from Topic</h2>
+                <!-- Topic Generator --><div class="glass-card p-6">
+                    <h2 class="text-2xl font-bold mb-5 text-indigo-700 dark:text-indigo-400">Generate from Topic</h2>
                     <div class="space-y-4">
                         <div>
-                            <label for="topic" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Topic</label>
-                            <input type="text" id="topic" class="form-input" placeholder="e.g., 'The French Revolution'">
+                            <label for="topic" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Topic or Subject</label>
+                            <input type="text" id="topic" class="form-input" placeholder="e.g., 'World War II causes'">
                         </div>
                         <div>
-                            <label for="topic-deck-name" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Deck Name</label>
-                            <input type="text" id="topic-deck-name" class="form-input" placeholder="e.g., 'History: French Revolution'">
+                            <label for="topic-deck-name" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Anki Deck Name</label>
+                            <input type="text" id="topic-deck-name" class="form-input" placeholder="e.g., 'History: WWII Causes'">
                         </div>
                         <div>
                             <label for="topic-num-cards" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Number of Cards</label>
                             <input type="number" id="topic-num-cards" value="10" min="1" class="form-input">
                         </div>
-                        <button id="generate-topic" class="btn-primary">Generate Deck</button>
+                        <button id="generate-topic" class="btn-primary mt-4">Generate Deck</button>
                     </div>
                 </div>
 
-                <!-- Text Generator -->
-                <div class="glass-card p-6">
-                    <h2 class="text-2xl font-bold mb-4 dark:text-white">Generate from Text</h2>
+                <!-- Text Generator --><div class="glass-card p-6">
+                    <h2 class="text-2xl font-bold mb-5 text-indigo-700 dark:text-indigo-400">Generate from Text</h2>
                     <div class="space-y-4">
                         <div>
-                            <label for="text-input" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Paste your text</label>
-                            <textarea id="text-input" rows="8" class="form-input" placeholder="Paste your study notes here..."></textarea>
+                            <label for="text-input" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Paste your study notes or article</label>
+                            <textarea id="text-input" rows="8" class="form-input resize-y" placeholder="Paste your study notes here..."></textarea>
                         </div>
                         <div>
-                            <label for="text-deck-name" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Deck Name</label>
+                            <label for="text-deck-name" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Anki Deck Name</label>
                             <input type="text" id="text-deck-name" class="form-input" placeholder="e.g., 'My Biology Notes'">
                         </div>
                         <div>
                             <label for="text-num-cards" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Number of Cards</label>
                             <input type="number" id="text-num-cards" value="20" min="1" class="form-input">
                         </div>
-                        <button id="generate-text" class="btn-primary">Generate Deck</button>
+                        <button id="generate-text" class="btn-primary mt-4">Generate Deck</button>
                     </div>
                 </div>
                 
-                <!-- File Generator -->
-                <div class="glass-card p-6 md:col-span-2">
-                    <h2 class="text-2xl font-bold mb-4 dark:text-white">Generate from File (PDF or DOCX)</h2>
+                <!-- File Generator --><div class="glass-card p-6 md:col-span-2">
+                    <h2 class="text-2xl font-bold mb-5 text-indigo-700 dark:text-indigo-400">Generate from File (PDF or DOCX)</h2>
                     <div class="space-y-4">
                         <div>
-                            <label for="file-upload" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Upload .pdf or .docx</label>
-                            <input id="file-upload" type="file" accept=".pdf,.docx" class="mt-1 block w-full text-sm text-gray-500 dark:text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 dark:file:bg-indigo-900/50 dark:file:text-indigo-300 dark:hover:file:bg-indigo-800"/>
+                            <label for="file-upload" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Upload your .pdf or .docx document</label>
+                            <input id="file-upload" type="file" accept=".pdf,.docx" class="mt-1 block w-full btn-secondary-file"/>
                         </div>
                         <div>
-                            <label for="file-deck-name" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Deck Name</label>
+                            <label for="file-deck-name" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Anki Deck Name</label>
                             <input type="text" id="file-deck-name" class="form-input" placeholder="e.g., 'Chapter 5 Study Guide'">
                         </div>
                         <div>
                             <label for="file-num-cards" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Number of Cards</label>
                             <input type="number" id="file-num-cards" value="20" min="1" class="form-input">
                         </div>
-                        <button id="generate-file" class="btn-primary">Generate Deck</button>
+                        <button id="generate-file" class="btn-primary mt-4">Generate Deck</button>
                     </div>
                 </div>
             </div>
             
-            <!-- Log Output -->
-            <div class="glass-card mt-6 p-6">
+            <!-- Log Output --><div class="glass-card mt-8 p-6">
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Generation Log</label>
-                <textarea id="log-output" rows="10" class="w-full p-2 bg-gray-900 dark:bg-black/50 text-green-400 font-mono text-sm rounded-md border border-gray-700" readonly>Waiting for task...</textarea>
+                <textarea id="log-output" rows="10" class="w-full p-4 bg-gray-900/80 dark:bg-black/80 text-green-400 font-mono text-sm rounded-lg border border-gray-700 dark:border-gray-600 transition-colors duration-200" readonly>Waiting for task...</textarea>
             </div>
         </div>
 
-        <!-- === PAGE: IMAGE OCCLUSION === -->
-        <div id="page-image-gen" class="page">
+        <!-- === PAGE: IMAGE OCCLUSION === --><div id="page-image-gen" class="page">
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                <!-- IO Controls -->
-                <div class="glass-card p-6 h-fit">
-                    <h2 class="text-2xl font-bold mb-4 dark:text-white">Image Occlusion</h2>
+                <!-- IO Controls --><div class="lg:col-span-1 glass-card p-6 h-fit">
+                    <h2 class="text-2xl font-bold mb-5 text-indigo-700 dark:text-indigo-400">Image Occlusion Tool</h2>
+                    <p class="text-gray-600 dark:text-gray-400 mb-6">
+                        Upload an image, then use the "Scan Image" button to detect text or "Manual Mode" to draw boxes yourself. Click on boxes to select text for occlusion.
+                    </p>
+
                     <div>
                         <label for="io-image-upload" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">1. Upload Image</label>
-                        <input id="io-image-upload" type="file" accept="image/*" class="block w-full text-sm text-gray-500 dark:text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 dark:file:bg-indigo-900/50 dark:file:text-indigo-300 dark:hover:file:bg-indigo-800"/>
+                        <input id="io-image-upload" type="file" accept="image/*" class="block w-full btn-secondary-file"/>
                     </div>
+                    
                     <div class="mt-6">
                         <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">2. Scan & Select Text</label>
-                        <button id="io-scan-button" disabled class="w-full bg-gray-500 text-white font-bold py-2 px-4 rounded-lg transition disabled:opacity-50 enabled:bg-indigo-600 enabled:hover:bg-indigo-700 dark:enabled:bg-indigo-500 dark:enabled:hover:bg-indigo-600">Scan Image</button>
+                        <button id="io-scan-button" disabled class="w-full btn-primary py-2 disabled:opacity-50 disabled:bg-gray-500">Scan Image</button>
                     </div>
-                    <div class="mt-4 flex items-center justify-between">
-                        <label for="io-manual-toggle" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Manual Mode</label>
-                        <input type="checkbox" id="io-manual-toggle" class="h-4 w-4 text-indigo-600 rounded">
+                    
+                    <div class="mt-4 flex items-center justify-between p-2 bg-gray-50 dark:bg-gray-800/40 rounded-lg">
+                        <label for="io-manual-toggle" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Manual Selection Mode</label>
+                        <input type="checkbox" id="io-manual-toggle" class="h-5 w-5 text-indigo-600 dark:text-indigo-400 rounded focus:ring-indigo-500">
                     </div>
+                    
                     <div class="mt-6">
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">3. Review Occlusions</label>
-                        <div id="io-occlusion-list" class="h-40 bg-gray-50 dark:bg-gray-900/50 rounded-lg p-2 overflow-y-auto border dark:border-gray-700">
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">3. Review & Adjust Occlusions</label>
+                        <div id="io-occlusion-list" class="h-40">
                             <p id="io-placeholder" class="text-center text-gray-500 dark:text-gray-400 p-4">Selected text appears here.</p>
                         </div>
                     </div>
-                    <div class="mt-6 border-t dark:border-gray-700 pt-6">
-                        <label for="io-deck-name" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">4. Export</label>
-                        <input type="text" id="io-deck-name" value="My Occlusion Deck" class="form-input mb-4">
-                        <button id="io-export-button" disabled class="w-full bg-green-600 text-white font-bold py-3 px-4 rounded-lg transition hover:bg-green-700 disabled:opacity-50 disabled:bg-gray-500">Generate .apkg File</button>
+                    
+                    <div class="mt-6 border-t border-gray-200 dark:border-gray-700 pt-6">
+                        <label for="io-deck-name" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">4. Anki Deck Name</label>
+                        <input type="text" id="io-deck-name" value="Image Occlusion Deck" class="form-input mb-4">
+                        <button id="io-export-button" disabled class="w-full bg-green-600 text-white font-bold py-3 px-4 rounded-xl hover:bg-green-700 disabled:opacity-50 disabled:bg-gray-500 transition-colors duration-200">Generate .apkg File</button>
                     </div>
                 </div>
-                <!-- IO Display -->
-                <div class="glass-card p-4 flex items-center justify-center min-h-[600px]">
+                <!-- IO Display --><div class="lg:col-span-2 glass-card p-4 flex items-center justify-center min-h-[600px]">
                     <div id="io-image-container" class="hidden">
-                        <img id="io-display-image" src="" alt="Uploaded image"/>
+                        <img id="io-display-image" src="" alt="Uploaded image for occlusion"/>
                         <canvas id="io-canvas"></canvas>
                     </div>
                     <div id="io-upload-placeholder" class="text-center text-gray-500 dark:text-gray-400">
                         <svg class="mx-auto h-24 w-24 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48"><path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
-                        <p class="mt-4 text-lg">Upload an image to start</p>
+                        <p class="mt-4 text-lg">Upload an image to start occluding text.</p>
                     </div>
                 </div>
             </div>
@@ -243,11 +268,11 @@
 
     </main>
 
-    <!-- === JAVASCRIPT === -->
-    <script>
+    <!-- === JAVASCRIPT === --><script>
         // --- App State ---
-        let SQL;
-        let tesseractWorker = null;
+        let SQL; // For genanki.js
+        let tesseractWorker = null; // For Image Occlusion OCR
+        let ocrInitialized = false; // To track if Tesseract is ready
 
         // --- DOM Elements ---
         const pages = document.querySelectorAll('.page');
@@ -266,23 +291,22 @@
             navButtons.forEach(b => {
                 b.classList.toggle('active', b.dataset.page === pageId);
             });
-            // Special case: Home button controls 3 generators
-            if (['page-home', 'page-text-gen', 'page-pdf-gen'].includes(pageId)) {
-                document.querySelector('.nav-button[data-page="page-home"]').classList.add('active');
-            }
         }
         
         function log(message) {
-            console.log(message);
+            console.log(message); // Always log to console for debugging
             logOutput.value += `\n[${new Date().toLocaleTimeString()}] ${message}`;
-            logOutput.scrollTop = logOutput.scrollHeight;
+            logOutput.scrollTop = logOutput.scrollHeight; // Auto-scroll to bottom
         }
 
         function showLoading(status) {
             loadingStatus.innerText = status;
+            settingsModal.classList.add('hidden'); // Ensure settings modal is hidden during loading
             loadingModal.classList.remove('hidden');
         }
-        function hideLoading() { loadingModal.classList.add('hidden'); }
+        function hideLoading() { 
+            loadingModal.classList.add('hidden'); 
+        }
 
         // --- Navigation ---
         navButtons.forEach(button => {
@@ -293,30 +317,31 @@
         const apiKeyInput = document.getElementById('api-key');
         
         saveSettingsButton.addEventListener('click', () => {
-            const apiKey = apiKeyInput.value;
+            const apiKey = apiKeyInput.value.trim();
             
             if (!apiKey) {
-                alert("Please fill in your API key.");
+                alert("Please paste your Google AI (Gemini) API key.");
                 return;
             }
             
             localStorage.setItem('geminiApiKey', apiKey);
             settingsModal.classList.add('hidden');
-            log("API Key saved.");
+            log("API Key saved securely to your browser's local storage.");
         });
 
         settingsButton.addEventListener('click', () => {
             apiKeyInput.value = localStorage.getItem('geminiApiKey') || '';
-            settingsModal.classList.remove('hidden');
+            settingsModal.classList.remove('hidden'); // Show settings modal when clicked
         });
         
+        // Check API key on app load
         function checkSettings() {
             const apiKey = localStorage.getItem('geminiApiKey');
             if (!apiKey) {
-                settingsModal.classList.remove('hidden');
+                settingsModal.classList.remove('hidden'); // Show modal if no key is found
             } else {
-                log("API Key loaded.");
-                settingsModal.classList.add('hidden'); // Hide modal if key is already set
+                log("Google AI API Key found and loaded.");
+                settingsModal.classList.add('hidden'); // Ensure modal is hidden if key is present
             }
         }
 
@@ -326,17 +351,17 @@
                 SQL = await initSqlJs({ 
                     locateFile: file => `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.3/${file}` 
                 });
-                log("Anki packager (sql.js) loaded.");
+                log("Anki packager (sql.js) loaded successfully.");
             } catch (err) {
                 console.error("Failed to load sql.js:", err);
-                log("ERROR: Could not load Anki packager. Please refresh.");
+                log("ERROR: Anki packager (sql.js) failed to load. Deck generation will not work. Please refresh.");
             }
         }
         
         // --- App Entry Point ---
         document.addEventListener('DOMContentLoaded', () => {
-            initSql();
-            checkSettings();
+            initSql(); // Initialize SQL.js for Anki packaging
+            checkSettings(); // Check for API key
             initTesseractWorker(); // Start loading Tesseract immediately
         });
         
@@ -344,12 +369,14 @@
         async function callGemini(prompt) {
             const apiKey = localStorage.getItem('geminiApiKey');
             if (!apiKey) {
-                alert("API Key not set. Please check settings.");
+                alert("Google AI API Key not set. Please open settings and paste your key.");
+                settingsModal.classList.remove('hidden'); // Show settings modal
                 return null;
             }
             
             log(`Calling Google AI (gemini-2.5-flash-preview-09-2025)...`);
             
+            // Define expected schema for robust JSON parsing
             const schema = {
                 type: "OBJECT", properties: {
                     "cards": { type: "ARRAY", items: {
@@ -368,9 +395,9 @@
             };
             
             try {
-                // Add exponential backoff for retries
+                // Implement exponential backoff for retries to handle rate limits or transient errors
                 let response;
-                let delay = 1000;
+                let delay = 1000; // Start with 1 second delay
                 for (let i = 0; i < 5; i++) { // Retry up to 5 times
                     response = await fetch(apiUrl, {
                         method: 'POST',
@@ -379,89 +406,98 @@
                     });
 
                     if (response.ok) {
-                        break; // Success
+                        break; // Success, exit retry loop
                     }
                     
-                    if (response.status === 429) { // Rate limit
-                        log(`Rate limited. Retrying in ${delay / 1000}s...`);
+                    if (response.status === 429) { // Rate limit error
+                        log(`Rate limited by Google AI. Retrying in ${delay / 1000}s...`);
                         await new Promise(resolve => setTimeout(resolve, delay));
-                        delay *= 2;
+                        delay *= 2; // Double the delay for next retry
                     } else {
-                        // Other error
+                        // Other API error, no retry needed for these
                         const errorBody = await response.json();
                         throw new Error(`API Error ${response.status}: ${errorBody.error.message}`);
                     }
                 }
 
                 if (!response.ok) {
-                    throw new Error("API call failed after retries.");
+                    throw new Error("Google AI call failed after multiple retries.");
                 }
 
                 const result = await response.json();
                 
+                // Basic validation of AI response structure
                 if (!result.candidates || !result.candidates[0].content) {
-                    throw new Error("AI returned an invalid response. This might be due to safety settings or input length.");
+                    throw new Error("Google AI returned an invalid response structure. This might be due to safety settings or input length.");
                 }
                 
                 const jsonText = result.candidates[0].content.parts[0].text;
-                const parsedJson = JSON.parse(jsonText);
+                const parsedJson = JSON.parse(jsonText); // Parse the JSON string
                 
-                if (!parsedJson.cards || parsedJson.cards.length === 0) {
-                    throw new Error("AI returned an empty or invalid card list.");
+                if (!parsedJson.cards || !Array.isArray(parsedJson.cards) || parsedJson.cards.length === 0) {
+                    throw new Error("Google AI returned an empty or invalid card list. Please try a different prompt.");
                 }
                 
-                log(`Successfully received ${parsedJson.cards.length} cards from AI.`);
+                log(`Successfully received ${parsedJson.cards.length} cards from Google AI.`);
                 return parsedJson.cards;
 
             } catch (err) {
-                console.error("Error calling Gemini:", err);
-                log(`ERROR: ${err.message}`);
+                console.error("Error calling Google AI:", err);
+                log(`ERROR: Google AI call failed: ${err.message}`);
                 return null;
             }
         }
         
         // --- Core: .apkg Packaging ---
         async function packageAndDownload(deckName, cards, mediaFiles = []) {
-            // FIX 1 CHECK: Check if genanki library is loaded
+            // Check if genanki library is loaded (FIX 1)
             if (typeof genanki === 'undefined') {
-                log("ERROR: Anki packaging library (genanki.js) failed to load. Cannot create .apkg file.");
+                log("ERROR: Anki packaging library (genanki.js) not found. Cannot create .apkg file. Please ensure JavaScript loaded correctly.");
+                alert("Anki packaging library not loaded. Please refresh your page.");
                 hideLoading();
                 return;
             }
 
             if (!SQL) {
-                log("ERROR: Anki packager not ready. Please wait.");
+                log("ERROR: Anki packager (sql.js) not ready. Please wait a few seconds and try again.");
                 alert("Anki packager not ready. Please wait a few seconds and try again.");
+                hideLoading();
                 return;
             }
             if (!cards || cards.length === 0) {
-                log("ERROR: No cards to package.");
+                log("ERROR: No cards to package. Generation might have failed or returned empty.");
+                alert("No cards were generated or selected. Please try again.");
+                hideLoading();
                 return;
             }
             
-            log("Packaging cards into .apkg file...");
+            log(`Packaging ${cards.length} cards into .apkg file for deck "${deckName}"...`);
             showLoading("Packaging deck...");
             
             try {
                 const basicModel = genanki.Model.BASIC_MODEL;
-                const deckId = Date.now();
+                // Generate a unique deck ID
+                const deckId = Math.floor(Math.random() * 10000000000); // 10-digit ID
                 const deck = new genanki.Deck(deckId, deckName);
 
                 for (const card of cards) {
-                    const note = new genanki.Note(basicModel, [card.front, card.back]);
+                    // Ensure card.front and card.back are strings
+                    const front = String(card.front || '');
+                    const back = String(card.back || '');
+                    const note = new genanki.Note(basicModel, [front, back]);
                     deck.addNote(note);
                 }
                 
                 const pkg = new genanki.Package(deck, mediaFiles);
-                const zip = await pkg.save();
-                const blob = new Blob([zip]);
-                saveAs(blob, `${deckName.replace(/ /g, '_')}.apkg`);
+                const zip = await pkg.save(); // This returns a Uint8Array
+                const blob = new Blob([zip], { type: 'application/apkg' });
+                saveAs(blob, `${deckName.replace(/[^a-zA-Z0-9_\-]/g, '_')}.apkg`); // Sanitize filename
                 
-                log(`SUCCESS: Deck "${deckName}" has been downloaded!`);
+                log(`SUCCESS: Deck "${deckName}" has been downloaded! Check your downloads folder.`);
 
             } catch (err) {
                 console.error("Error generating .apkg:", err);
-                log(`ERROR: Could not generate .apkg file. ${err.message}`);
+                log(`ERROR: Could not generate .apkg file. Details: ${err.message}. Please check console for more info.`);
             } finally {
                 hideLoading();
             }
@@ -471,21 +507,21 @@
         const topicButton = document.getElementById('generate-topic');
         topicButton.addEventListener('click', async () => {
             logOutput.value = "Starting new task...";
-            const topic = document.getElementById('topic').value;
-            const deckName = document.getElementById('topic-deck-name').value || 'AI Topic Deck';
+            const topic = document.getElementById('topic').value.trim();
+            const deckName = document.getElementById('topic-deck-name').value.trim() || `AnkiGenius: ${topic || 'Topic Deck'}`;
             const numCards = parseInt(document.getElementById('topic-num-cards').value, 10);
             
             if (!topic) { alert("Please enter a topic."); return; }
-            if (numCards < 1) { alert("Please enter a valid number of cards."); return; }
+            if (numCards < 1 || isNaN(numCards)) { alert("Please enter a valid number of cards (1 or more)."); return; }
             
             showLoading(`Generating ${numCards} cards for "${topic}"...`);
-            const prompt = `Generate exactly ${numCards} high-quality flashcards (question and answer pairs) about the topic: "${topic}".`;
+            const prompt = `Generate exactly ${numCards} high-quality flashcards (question and answer pairs) about the topic: "${topic}". Format as JSON array of {front: "...", back: "..."}.`;
             const cards = await callGemini(prompt);
             
             if (cards) {
                 await packageAndDownload(deckName, cards);
             } else {
-                hideLoading();
+                hideLoading(); // Hide loading if AI call failed
             }
         });
         
@@ -493,15 +529,15 @@
         const textButton = document.getElementById('generate-text');
         textButton.addEventListener('click', async () => {
             logOutput.value = "Starting new task...";
-            const text = document.getElementById('text-input').value;
-            const deckName = document.getElementById('text-deck-name').value || 'AI Text Deck';
+            const text = document.getElementById('text-input').value.trim();
+            const deckName = document.getElementById('text-deck-name').value.trim() || 'AnkiGenius: Text Notes';
             const numCards = parseInt(document.getElementById('text-num-cards').value, 10);
 
-            if (!text) { alert("Please paste some text."); return; }
-            if (numCards < 1) { alert("Please enter a valid number of cards."); return; }
+            if (!text) { alert("Please paste some text into the box."); return; }
+            if (numCards < 1 || isNaN(numCards)) { alert("Please enter a valid number of cards (1 or more)."); return; }
             
             showLoading("Analyzing text and generating cards...");
-            const prompt = `Generate exactly ${numCards} high-quality flashcards (question and answer pairs) based on the following text. Extract the most important facts, definitions, and concepts. Text: "${text}"`;
+            const prompt = `Generate exactly ${numCards} high-quality flashcards (question and answer pairs) based on the following text. Extract the most important facts, definitions, and concepts. Text: "${text}". Format as JSON array of {front: "...", back: "..."}.`;
             const cards = await callGemini(prompt);
             
             if (cards) {
@@ -516,14 +552,16 @@
         fileButton.addEventListener('click', async () => {
             logOutput.value = "Starting new task...";
             const fileInput = document.getElementById('file-upload');
-            const deckName = document.getElementById('file-deck-name').value || 'AI File Deck';
+            const deckName = document.getElementById('file-deck-name').value.trim() || 'AnkiGenius: Document Cards';
+            const numCards = parseInt(document.getElementById('file-num-cards').value, 10);
             
             if (!fileInput.files || fileInput.files.length === 0) {
                 alert("Please select a .pdf or .docx file."); return;
             }
+            if (numCards < 1 || isNaN(numCards)) { alert("Please enter a valid number of cards (1 or more)."); return; }
             
             const file = fileInput.files[0];
-            let text = '';
+            let parsedText = '';
             
             showLoading(`Parsing file: ${file.name}...`);
             
@@ -539,41 +577,39 @@
                             const textContent = await page.getTextContent();
                             fullText += textContent.items.map(item => item.str).join(' ') + '\n';
                         }
-                        text = fullText;
+                        parsedText = fullText;
                         log(`Successfully parsed ${pdf.numPages} pages from PDF.`);
-                        await generateCardsFromParsedText(text, deckName);
+                        await generateCardsFromParsedText(parsedText, deckName, numCards);
                     };
                     reader.readAsArrayBuffer(file);
                 } else if (file.name.endsWith(".docx")) {
                     const reader = new FileReader();
                     reader.onload = async (e) => {
                         const result = await mammoth.extractRawText({arrayBuffer: e.target.result});
-                        text = result.value;
+                        parsedText = result.value;
                         log("Successfully parsed DOCX file.");
-                        await generateCardsFromParsedText(text, deckName);
+                        await generateCardsFromParsedText(parsedText, deckName, numCards);
                     };
                     reader.readAsArrayBuffer(file);
                 } else {
-                    throw new Error("Unsupported file type. Please use .pdf or .docx");
+                    throw new Error("Unsupported file type. Please upload a .pdf or .docx file.");
                 }
             } catch (err) {
-                log(`ERROR: ${err.message}`);
+                log(`ERROR: File parsing failed: ${err.message}`);
                 hideLoading();
             }
         });
         
-        async function generateCardsFromParsedText(text, deckName) {
-            if (!text) {
-                log("ERROR: File appears to be empty or could not be read.");
+        async function generateCardsFromParsedText(text, deckName, numCards) {
+            if (!text || text.trim().length === 0) {
+                log("ERROR: File appears to be empty or could not be read properly.");
+                alert("The selected file appears to be empty or could not be read.");
                 hideLoading();
                 return;
             }
             
-            const numCards = parseInt(document.getElementById('file-num-cards').value, 10);
-            if (numCards < 1) { alert("Please enter a valid number of cards."); return; }
-
-            showLoading("Analyzing text and generating cards...");
-            const prompt = `Generate exactly ${numCards} high-quality flashcards (question and answer pairs) based on the following text. Extract the most important facts, definitions, and concepts. Text: "${text}"`;
+            showLoading("Analyzing document text and generating cards...");
+            const prompt = `Generate exactly ${numCards} high-quality flashcards (question and answer pairs) based on the following text. Extract the most important facts, definitions, and concepts. Text: "${text}". Format as JSON array of {front: "...", back: "..."}.`;
             const cards = await callGemini(prompt);
             
             if (cards) {
@@ -599,162 +635,273 @@
         };
         let io_ctx = io.canvas.getContext('2d');
         let io_imageBlob = null, io_imageFilename = 'image.png';
-        let io_ocrResults = [], io_selected = [];
-        let io_isManual = false, io_isDrawing = false, io_manualRect = {};
+        let io_ocrResults = [], io_selected = []; // Store OCR results and selected occlusions
+        let io_isManual = false, io_isDrawing = false, io_manualRect = {}; // For manual drawing
 
+        // Initialize Tesseract Worker
         async function initTesseractWorker() {
-            log("Loading AI model for Image Occlusion (Tesseract.js)...");
+            log("Loading AI model for Image Occlusion (Tesseract.js)... This might take a moment.");
             showLoading("Loading Image Occlusion AI...");
-            
-            // This setup uses the default CDN paths which Tesseract.js v5 recommends
-            tesseractWorker = await Tesseract.createWorker('eng', 1, {
-                logger: m => {
-                    if (m.status === 'recognizing text') {
-                        showLoading(`Scanning image... ${Math.round(m.progress * 100)}%`);
-                    } else if (m.status.startsWith('loading')) {
-                        showLoading(`Loading AI files... (${m.status})`);
+            try {
+                // Tesseract.js v5 automatically handles workerPath and langPath from CDN
+                tesseractWorker = await Tesseract.createWorker('eng', 1, {
+                    logger: m => {
+                        // console.log(m); // Uncomment for full Tesseract logs
+                        if (m.status === 'recognizing text' || m.status === 'loading eng.traineddata') {
+                            showLoading(`Scanning image... ${Math.round(m.progress * 100)}%`);
+                        } else if (m.status.startsWith('loading')) {
+                            showLoading(`Loading AI files... (${m.status})`);
+                        }
                     }
-                }
-            });
-            log("Image Occlusion AI loaded.");
-            hideLoading();
+                });
+                ocrInitialized = true;
+                log("Image Occlusion AI (Tesseract.js) loaded and ready.");
+            } catch (err) {
+                console.error("Error loading Tesseract.js:", err);
+                log(`ERROR: Image Occlusion AI failed to load: ${err.message}`);
+                alert("Image Occlusion AI failed to load. Please check your internet connection and refresh.");
+            } finally {
+                hideLoading();
+            }
         }
 
+        // Handle image upload for occlusion
         io.upload.addEventListener('change', (e) => {
-            const file = e.target.files[0]; if (!file) return;
-            io_imageBlob = file; io_imageFilename = file.name.replace(/[^a-zA-Z0-9.]/g, '_');
+            const file = e.target.files[0];
+            if (!file) return;
+
+            io_imageBlob = file;
+            io_imageFilename = file.name.replace(/[^a-zA-Z0-9.]/g, '_'); // Sanitize filename
+
             const reader = new FileReader();
             reader.onload = (event) => {
                 io.image.src = event.target.result;
                 io.image.onload = () => {
-                    io.canvas.width = io.image.clientWidth; io.canvas.height = io.image.clientHeight;
+                    // Set canvas dimensions to match image display size
+                    io.canvas.width = io.image.clientWidth;
+                    io.canvas.height = io.image.clientHeight;
+                    
                     io.container.classList.remove('hidden');
                     io.uploadPlaceholder.classList.add('hidden');
-                    io.scanBtn.disabled = false;
-                    io.exportBtn.disabled = true; io_ocrResults = []; io_selected = []; io_updateList();
-                    io_ctx.clearRect(0, 0, io.canvas.width, io.canvas.height);
+                    io.scanBtn.disabled = !ocrInitialized; // Enable scan button only if OCR is ready
+                    io.exportBtn.disabled = true; // Disable export until occlusions are selected
+                    io_ocrResults = []; // Clear previous OCR results
+                    io_selected = []; // Clear previous selections
+                    io_updateList(); // Update occlusion list display
+                    io_ctx.clearRect(0, 0, io.canvas.width, io.canvas.height); // Clear canvas
                 };
             };
             reader.readAsDataURL(file);
         });
 
+        // Scan image for text using Tesseract.js
         io.scanBtn.addEventListener('click', async () => {
-            if (!tesseractWorker) { alert("AI Model is not ready. Please wait."); return; }
+            if (!tesseractWorker || !ocrInitialized) {
+                alert("Image Occlusion AI is not ready. Please wait a moment for it to load, or refresh the page.");
+                return;
+            }
+            if (!io.image.src) {
+                alert("Please upload an image first.");
+                return;
+            }
+            
             showLoading("Scanning image for text..."); 
             try {
-                // FIX 2: Added Page Segmentation Mode (PSM) 3 (AUTO)
-                // This helps Tesseract understand diagrams and non-standard text layouts.
+                // Using PSM_AUTO (3) for automatic page segmentation mode, better for varied layouts.
+                // Added OEM_LSTM_ONLY (1) as the default which is generally best.
                 const { data } = await tesseractWorker.recognize(io.image.src, {}, {
-                    tessedit_pageseg_mode: 3, // 3 = PSM_AUTO
+                    tessedit_pageseg_mode: 3, // PSM_AUTO
+                    // oem: 1, // OEM_LSTM_ONLY (This is often default, but good to be explicit if issues)
                 });
 
-                if (data.words.length === 0) {
-                    log("Scan complete. No text found. (Try Manual Mode?)");
+                // Tesseract provides text in words, lines, paragraphs etc. We combine lines and words.
+                // Filter out empty or very short text items that are likely noise
+                io_ocrResults = data.lines.concat(data.words).filter(item => item.text && item.text.trim().length > 1);
+
+                if (io_ocrResults.length === 0) {
+                    log("Scan complete. No significant text found by AI. You can still use Manual Mode.");
                 } else {
-                    log(`Scan complete. Found ${data.words.length} words.`);
+                    log(`Scan complete. Found ${io_ocrResults.length} text blocks.`);
                 }
-                io_ocrResults = data.lines.concat(data.words);
-                io_drawBoxes();
-            } catch (err) { console.error(err); log(`ERROR: Image scanning failed. ${err.message}`); } 
-            finally { hideLoading(); }
+                io_drawBoxes(); // Draw bounding boxes on canvas
+            } catch (err) {
+                console.error("Image scanning failed:", err);
+                log(`ERROR: Image scanning failed. Details: ${err.message}.`);
+                alert("Image scanning failed. Please try a different image or use Manual Mode.");
+            } finally {
+                hideLoading();
+            }
         });
 
+        // Toggle Manual Mode
         io.manualToggle.addEventListener('change', (e) => {
             io_isManual = e.target.checked;
             io.canvas.style.cursor = io_isManual ? 'crosshair' : 'default';
-            if (!io_isManual) io_drawBoxes();
+            if (!io_isManual) {
+                io_drawBoxes(); // Redraw boxes (removes manual drawing outlines)
+                io_isDrawing = false; // Reset drawing state
+            }
         });
 
+        // Helper to get click coordinates scaled to natural image size (for bbox comparison)
         function io_getCanvasClick(e) {
-            const rect = io.canvas.getBoundingClientRect();
-            const naturalX = (e.clientX - rect.left) * (io.image.naturalWidth / io.image.clientWidth);
-            const naturalY = (e.clientY - rect.top) * (io.image.naturalHeight / io.image.clientHeight);
+            const rect = io.canvas.getBoundingClientRect(); // Get canvas position relative to viewport
+            const scaleX = io.image.naturalWidth / io.image.clientWidth;
+            const scaleY = io.image.naturalHeight / io.image.clientHeight;
+            const naturalX = (e.clientX - rect.left) * scaleX;
+            const naturalY = (e.clientY - rect.top) * scaleY;
             return { x: naturalX, y: naturalY };
         }
+
+        // Helper to scale bounding box from natural image size to canvas display size
         function io_scaleBbox(bbox) {
             const scaleX = io.canvas.width / io.image.naturalWidth;
             const scaleY = io.canvas.height / io.image.naturalHeight;
-            return { x: bbox.x0 * scaleX, y: bbox.y0 * scaleY, w: (bbox.x1 - bbox.x0) * scaleX, h: (bbox.y1 - bbox.y0) * scaleY };
+            return { 
+                x: bbox.x0 * scaleX, 
+                y: bbox.y0 * scaleY, 
+                w: (bbox.x1 - bbox.x0) * scaleX, 
+                h: (bbox.y1 - bbox.y0) * scaleY 
+            };
         }
+
+        // Draw all bounding boxes and selected occlusions on canvas
         function io_drawBoxes() {
-            io_ctx.clearRect(0, 0, io.canvas.width, io.canvas.height);
-            // Draw all found text boxes in green
+            io_ctx.clearRect(0, 0, io.canvas.width, io.canvas.height); // Clear entire canvas
+
+            // Draw all detected text boxes (green outline)
             for (const item of io_ocrResults) {
                 const { x, y, w, h } = io_scaleBbox(item.bbox);
-                io_ctx.strokeStyle = 'rgba(0, 255, 0, 0.5)'; io_ctx.lineWidth = 2; io_ctx.strokeRect(x, y, w, h);
+                io_ctx.strokeStyle = 'rgba(0, 255, 0, 0.5)'; // Green for detected text
+                io_ctx.lineWidth = 2;
+                io_ctx.strokeRect(x, y, w, h);
             }
-            // Draw selected occlusion boxes in blue
+            
+            // Draw selected occlusion boxes (blue fill)
             for (const occ of io_selected) {
                 if (occ.bbox) {
                     const { x, y, w, h } = io_scaleBbox(occ.bbox);
-                    io_ctx.fillStyle = 'rgba(30, 64, 175, 0.7)'; io_ctx.fillRect(x, y, w, h);
+                    io_ctx.fillStyle = 'rgba(30, 64, 175, 0.7)'; // Dark blue for occluded areas
+                    io_ctx.fillRect(x, y, w, h);
                 }
             }
         }
+        
+        // Add a new occlusion to the selected list
         function io_addOcclusion(text, bbox) {
+            // Prevent adding exact duplicates
             if (io_selected.some(o => o.text === text && JSON.stringify(o.bbox) === JSON.stringify(bbox))) {
                 return; 
             }
-            io_selected.push({ text, bbox }); io_updateList();
+            io_selected.push({ text, bbox });
+            io_updateList();
         }
+
+        // Remove an occlusion from the selected list
         function io_removeOcclusion(text) {
-            // Find and remove the specific occlusion by text
-            const indexToRemove = io_selected.findIndex(o => o.text === text);
-            if (indexToRemove > -1) {
-                io_selected.splice(indexToRemove, 1);
-            }
-            io_updateList(); io_drawBoxes();
+            io_selected = io_selected.filter(o => o.text !== text); // Filter out the item to remove
+            io_updateList();
+            io_drawBoxes(); // Redraw canvas to reflect removal
         }
+
+        // Update the visible list of selected occlusions
         function io_updateList() {
             if (io_selected.length === 0) {
-                io.list.innerHTML = ''; io.list.appendChild(io.placeholder);
+                io.list.innerHTML = '';
+                io.list.appendChild(io.placeholder);
                 io.exportBtn.disabled = true;
             } else {
-                io.placeholder.remove(); io.list.innerHTML = '';
+                io.placeholder.remove(); // Remove placeholder if items exist
+                io.list.innerHTML = ''; // Clear current list
                 io_selected.forEach(occ => {
                     const item = document.createElement('div');
-                    item.className = 'p-2 bg-indigo-100 dark:bg-indigo-900/50 rounded text-sm mb-1 flex justify-between items-center';
+                    item.className = 'p-2 bg-indigo-100 dark:bg-indigo-900/30 rounded-md text-sm mb-1 flex justify-between items-center text-gray-800 dark:text-gray-200';
                     item.textContent = occ.text;
+
                     const btn = document.createElement('button');
-                    btn.innerHTML = '&times;'; btn.className = 'font-bold text-red-500 pl-2';
-                    // Use an anonymous function to ensure we pass the correct text
-                    btn.onclick = () => io_removeOcclusion(occ.text);
-                    item.appendChild(btn); io.list.appendChild(item);
+                    btn.innerHTML = '&times;'; // 'x' icon
+                    btn.className = 'font-bold text-red-500 dark:text-red-400 pl-2';
+                    btn.onclick = () => io_removeOcclusion(occ.text); // Correctly bind click handler
+                    
+                    item.appendChild(btn);
+                    io.list.appendChild(item);
                 });
-                io.exportBtn.disabled = false;
+                io.exportBtn.disabled = false; // Enable export button
             }
         }
-        io.canvas.addEventListener('mousedown', (e) => { if (io_isManual) { io_isDrawing = true; io_manualRect.startX = e.offsetX; io_manualRect.startY = e.offsetY; }});
-        io.canvas.addEventListener('mousemove', (e) => {
-            if (io_isManual && io_isDrawing) {
-                io_drawBoxes(); // Redraw boxes
-                const x = io_manualRect.startX;
-                const y = io_manualRect.startY;
-                const w = e.offsetX - x; 
-                const h = e.offsetY - y;
-                io_ctx.strokeStyle = '#c7d2fe'; io_ctx.lineWidth = 2; io_ctx.strokeRect(x, y, w, h);
+
+        // --- Manual Mode Drawing Logic ---
+        io.canvas.addEventListener('mousedown', (e) => {
+            if (io_isManual) {
+                io_isDrawing = true;
+                const rect = io.canvas.getBoundingClientRect(); // Get canvas position relative to viewport
+                io_manualRect = { 
+                    startX: e.clientX - rect.left, 
+                    startY: e.clientY - rect.top,
+                    currentX: e.clientX - rect.left,
+                    currentY: e.clientY - rect.top
+                };
             }
         });
+
+        io.canvas.addEventListener('mousemove', (e) => {
+            if (io_isManual && io_isDrawing) {
+                io_drawBoxes(); // Redraw detected boxes first
+                
+                const rect = io.canvas.getBoundingClientRect();
+                io_manualRect.currentX = e.clientX - rect.left;
+                io_manualRect.currentY = e.clientY - rect.top;
+
+                const { startX, startY, currentX, currentY } = io_manualRect;
+                const x = Math.min(startX, currentX);
+                const y = Math.min(startY, currentY);
+                const w = Math.abs(currentX - startX);
+                const h = Math.abs(currentY - startY);
+                
+                io_ctx.strokeStyle = '#a5b4fc'; // Light blue for manual drawing outline
+                io_ctx.lineWidth = 2;
+                io_ctx.strokeRect(x, y, w, h);
+            }
+        });
+
         io.canvas.addEventListener('mouseup', (e) => {
             if (io_isManual && io_isDrawing) {
                 io_isDrawing = false;
-                const bbox = { x0: Math.min(io_manualRect.startX, e.offsetX), y0: Math.min(io_manualRect.startY, e.offsetY), x1: Math.max(io_manualRect.startX, e.offsetX), y1: Math.max(io_manualRect.startY, e.offsetY) };
                 
-                // Scale to natural size
-                const naturalBbox = {
-                    x0: bbox.x0 * (io.image.naturalWidth / io.image.clientWidth), y0: bbox.y0 * (io.image.naturalHeight / io.image.clientHeight),
-                    x1: bbox.x1 * (io.image.naturalWidth / io.image.clientWidth), y1: bbox.y1 * (io.image.naturalHeight / io.image.clientHeight)
+                const { startX, startY, currentX, currentY } = io_manualRect;
+                const bboxDisplay = { 
+                    x0: Math.min(startX, currentX), 
+                    y0: Math.min(startY, currentY), 
+                    x1: Math.max(startX, currentX), 
+                    y1: Math.max(startY, currentY) 
                 };
-                const text = prompt("What text is in this box?");
-                if (text) io_addOcclusion(text, naturalBbox);
-                io_drawBoxes();
+
+                // Convert display coordinates to natural image coordinates for storage
+                const scaleX_inv = io.image.naturalWidth / io.canvas.width;
+                const scaleY_inv = io.image.naturalHeight / io.canvas.height;
+
+                const naturalBbox = {
+                    x0: bboxDisplay.x0 * scaleX_inv, 
+                    y0: bboxDisplay.y0 * scaleY_inv,
+                    x1: bboxDisplay.x1 * scaleX_inv, 
+                    y1: bboxDisplay.y1 * scaleY_inv
+                };
+
+                const text = prompt("What text or concept does this box represent?");
+                if (text && text.trim() !== '') {
+                    io_addOcclusion(text.trim(), naturalBbox);
+                }
+                io_drawBoxes(); // Redraw everything to show new occlusion filled
             }
         });
+
+        // --- Auto Mode Click Logic (select/deselect OCR-detected boxes) ---
         io.canvas.addEventListener('click', (e) => {
-            if (io_isManual || io_isDrawing) return;
-            const { x, y } = io_getCanvasClick(e);
+            if (io_isManual || io_isDrawing) return; // Only process clicks in auto mode
+
+            const { x, y } = io_getCanvasClick(e); // Click coordinates in natural image scale
             
-            // Find the smallest clicked box
+            // Find the smallest detected text box that was clicked
             let clickedItem = null;
             let smallestArea = Infinity;
 
@@ -771,38 +918,66 @@
 
             if (clickedItem) {
                 const { bbox, text } = clickedItem;
-                const existingIndex = io_selected.findIndex(o => o.bbox && o.bbox.x0 === bbox.x0 && o.bbox.y0 === bbox.y0);
+                // Check if this specific box is already selected
+                const existingIndex = io_selected.findIndex(o => 
+                    o.bbox && o.bbox.x0 === bbox.x0 && o.bbox.y0 === bbox.y0 && o.bbox.x1 === bbox.x1 && o.bbox.y1 === bbox.y1
+                );
+                
                 if (existingIndex > -1) {
+                    // Already selected, so deselect it
                     io_selected.splice(existingIndex, 1);
                 } else {
+                    // Not selected, so add it
                     io_addOcclusion(text.trim(), bbox);
                 }
-                io_drawBoxes(); // Redraw to update highlights
+                io_drawBoxes(); // Redraw canvas to update highlights
             }
         });
+
+        // Export Anki deck for Image Occlusion
         io.exportBtn.addEventListener('click', async () => {
-            if (io_selected.length === 0 || !SQL) { alert("Select occlusions or wait for packager."); return; }
-            showLoading("Generating Occlusion Deck...");
+            if (io_selected.length === 0) {
+                alert("Please select at least one occlusion to export.");
+                return;
+            }
+            if (!SQL) {
+                alert("Anki packager is not ready. Please wait a moment and try again.");
+                return;
+            }
+
+            showLoading("Generating Image Occlusion Deck...");
             try {
+                // Anki's cloze model is perfect for image occlusion
                 const clozeModel = genanki.Model.CLOZE_MODEL;
-                const deckName = io.deckName.value || 'Image Occlusion Deck';
-                const deck = new genanki.Deck(Date.now(), deckName);
+                const deckName = io.deckName.value.trim() || 'AnkiGenius: Image Occlusion Deck';
+                const deck = new genanki.Deck(Math.floor(Math.random() * 10000000000), deckName); // Unique deck ID
                 
+                // Prepare media file (the image itself)
                 const mediaFiles = [{ name: io_imageFilename, data: io_imageBlob }];
                 
-                let clozeText = '';
+                let clozeTextContent = '';
+                // Create cloze deletions for each selected occlusion
                 io_selected.forEach((occ, i) => {
-                    const cleanText = occ.text.replace(/{/g, '').replace(/}/g, ''); // Ensure no existing Anki cloze syntax
-                    clozeText += `{{c${i+1}::${cleanText}}} `;
+                    // Sanitize text to avoid Anki cloze syntax conflicts (e.g., if text contains {{...}})
+                    const cleanText = occ.text.replace(/{/g, '&#123;').replace(/}/g, '&#125;'); 
+                    clozeTextContent += `{{c${i+1}::${cleanText}}} `;
                 });
-                const noteText = `${clozeText}<br><br><img src="${io_imageFilename}">`;
+
+                // The Anki note will contain the cloze deletions and the image
+                const noteText = `${clozeTextContent}<br><br><img src="${io_imageFilename}">`;
                 const note = new genanki.Note(clozeModel, [noteText, `Occlusion card for ${io_imageFilename}`]);
                 deck.addNote(note);
+                
                 const pkg = new genanki.Package(deck, mediaFiles);
                 const zip = await pkg.save();
-                saveAs(new Blob([zip]), `${deckName.replace(/ /g, '_')}.apkg`);
-                log(`SUCCESS: Deck "${deckName}" downloaded!`);
-            } catch (err) { console.error(err); log("ERROR: Could not generate occlusion deck."); }
+                saveAs(new Blob([zip], { type: 'application/apkg' }), `${deckName.replace(/[^a-zA-Z0-9_\-]/g, '_')}.apkg`);
+                log(`SUCCESS: Image Occlusion Deck "${deckName}" downloaded!`);
+
+            } catch (err) {
+                console.error("Error generating image occlusion .apkg:", err);
+                log(`ERROR: Could not generate image occlusion deck. Details: ${err.message}`);
+                alert("Failed to generate image occlusion deck. See log for details.");
+            }
             finally { hideLoading(); }
         });
         
