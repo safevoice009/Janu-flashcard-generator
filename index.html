@@ -32,14 +32,18 @@
           <button id="scanOcrBtn" class="btn">OCR scan</button>
           <button id="autoOccludeBtn" class="btn">Auto occlude labels</button>
           <button id="oneClickDeckBtn" class="btn primary">Generate occlusion deck</button>
+          <button id="bulkCreateBtn" class="btn">Create cards</button>
         </div>
+
         <div class="editorCanvasWrap">
           <canvas id="imgCanvas"></canvas>
-          <canvas id="maskCanvas"></canvas>
+          <canvas id="maskCanvas" aria-label="Mask overlay canvas"></canvas>
         </div>
+
         <div id="progressBar" class="progress hidden"><div id="progressFill"></div><span id="progressText"></span></div>
         <div id="busyOverlay" class="busy hidden">Working…</div>
       </div>
+
       <div class="editToolbar">
         <span class="chip">Tap mask to select</span>
         <span class="chip">Drag to move</span>
@@ -49,6 +53,7 @@
         <button id="redoBtn" class="btn">Redo</button>
         <button id="resetViewBtn" class="btn">Reset view</button>
       </div>
+
       <div id="ocrOutput" class="glass card"></div>
     </section>
 
@@ -84,9 +89,7 @@
       <h2>Review (FSRS-style)</h2>
       <div class="reviewControls">
         <button id="startReviewBtn" class="btn">Start</button>
-        <label>
-          <input type="checkbox" id="fsrsMode" checked> Use FSRS-like scheduling
-        </label>
+        <label><input type="checkbox" id="fsrsMode" checked> Use FSRS-like scheduling</label>
       </div>
       <div id="reviewCard" class="reviewCard glass"></div>
       <div class="reviewBtns">
@@ -105,9 +108,7 @@
 
   <script src="script.js"></script>
   <script>
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('sw.js');
-    }
+    if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(()=>{});
   </script>
 </body>
 </html>
