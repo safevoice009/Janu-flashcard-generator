@@ -63,8 +63,9 @@ h2 { margin: 0 0 12px; font-size: 1.2rem; }
 
 .fileBtn { position: relative; overflow: hidden; display: inline-block; }
 .fileBtn input[type=file] { position:absolute; inset:0; opacity:0; width:100%; height:100%; }
+.fileBtn.big { padding:10px 14px; border-radius:12px; background:rgba(255,255,255,0.06); }
 
-.uploader, .settingsRow, .deckControls, .reviewBtns, .editToolbar {
+.uploader, .settingsRow, .deckControls, .reviewBtns, .editToolbar, .editorTop {
   display: flex; gap: 8px; flex-wrap: wrap; align-items: center;
 }
 
@@ -75,10 +76,22 @@ input, textarea, select {
 
 textarea { min-height: 140px; }
 
-.canvasRow { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; align-items: start; }
+.editorPane { display:flex; flex-direction:column; gap:10px; }
+.editorCanvasWrap { position:relative; width:100%; }
 #imgCanvas, #maskCanvas {
-  width: 100%; height: 420px; border-radius: 12px; border: 1px dashed var(--border); background: rgba(0,0,0,0.2);
+  width: 100%; height: 520px; border-radius: 12px; display: block;
 }
+#maskCanvas {
+  position: absolute; left: 0; top: 0; touch-action: none;
+}
+
+.progress { height:28px; border-radius:8px; background:rgba(255,255,255,0.06); overflow:hidden; position:relative; }
+.progress.hidden { display:none; }
+#progressFill { height:100%; width:0%; background:linear-gradient(90deg,#7aa2f7,#9ece6a); transition:width 120ms linear; }
+#progressText { position:absolute; right:8px; top:4px; font-size:12px; color:var(--text); }
+
+.busy { position: absolute; inset:20px; background: rgba(0,0,0,0.45); color:white; display:flex; align-items:center; justify-content:center; font-weight:600; border-radius:12px; z-index:999; }
+.hidden { display:none; }
 
 .legend .chip, .editToolbar .chip {
   display: inline-block; padding: 6px 10px; border-radius: 999px; margin-right: 8px;
