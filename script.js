@@ -1,65 +1,99 @@
 /* OccludeX — advanced touch-friendly client-only app
+   - Accurate touch alignment (DPR-aware)
    - OCR via Tesseract.js
-   - Image occlusion masks (canvas) with selection, move, resize, delete
-   - Auto-occlusion via OCR bounding boxes
-   - AI flashcards via Gemini API (key stored locally)
-   - Export .apkg using anki-apkg-export
-   - FSRS-like local review scheduling
-   - Mobile-first interactions (iPad/iPhone/Android)
+   - Auto-occlusion grouping labels
+   - Image occlusion masks: select, move, resize, delete, undo/redo
+   - Pinch-zoom and pan
+   - One-click deck generation
+   - AI flashcards via Gemini API
+   - Export .apkg with embedded media (anki-apkg-export)
+   - FSRS-like review
 */
 
-// Global state
 const state = {
   image: null,
-  masks: [], // {x,y,w,h, id}
+  masks: [], // {x,y,w,h,id}
   selectedId: null,
   ocrText: "",
-  aiCards: [], // {front, back, tags, type}
-  deck: [],    // includes occlusion and ai cards
-  fsrs: {},    // {cardId: {ease, interval, due}}
+  aiCards: [],
+  deck: [],
+  fsrs: {},
 };
 
 const imgCanvas = document.getElementById('imgCanvas');
 const maskCanvas = document.getElementById('maskCanvas');
+const ctxImg = imgCanvas.getContext('2d');
+const ctxMask = maskCanvas.getContext('2d');
 const ocrOutput = document.getElementById('ocrOutput');
 const imageInput = document.getElementById('imageInput');
 
-const ctxImg = imgCanvas.getContext('2d');
-const ctxMask = maskCanvas.getContext('2d');
-
 let imgBitmap = null;
 
-// Interaction state
-let dragMode = null; // 'draw' | 'move' | 'resize'
-let dragStart = null; // {x,y}
-let resizeCorner = null; // 'nw'|'ne'|'sw'|'se'
-let activeMask = null; // reference to selected mask during move/resize
+// History (undo/redo)
+const history = { stack: [], idx: -1 };
+function pushHistory() {
+  history.stack = history.stack.slice(0, history.idx + 1);
+  history.stack.push(JSON.stringify(state.masks));
+  history.idx++;
+}
+function undo() {
+  if (history.idx <= 0) return;
+  history.idx--;
+  state.masks = JSON.parse(history.stack[history.idx] || '[]');
+  drawImage(); drawMasks();
+}
+function redo() {
+  if (history.idx >= history.stack.length - 1) return;
+  history.idx++;
+  state.masks = JSON.parse(history.stack[history.idx] || '[]');
+  drawImage(); drawMasks();
+}
+document.getElementById('undoBtn').addEventListener('click', undo);
+document.getElementById('redoBtn').addEventListener('click', redo);
 
-// Utility: coordinates
-function getCanvasPoint(evt, canvas) {
-  const rect = canvas.getBoundingClientRect();
-  const x = (evt.touches ? evt.touches[0].clientX : evt.clientX) - rect.left;
-  const y = (evt.touches ? evt.touches[0].clientY : evt.clientY) - rect.top;
-  return { x, y };
+// View (zoom/pan)
+let view = { scale: 1, offsetX: 0, offsetY: 0 };
+document.getElementById('resetViewBtn').addEventListener('click', () => {
+  view = { scale: 1, offsetX: 0, offsetY: 0 };
+  drawImage(); drawMasks();
+});
+
+function applyViewTransform(ctx) {
+  ctx.setTransform(view.scale, 0, 0, view.scale, view.offsetX, view.offsetY);
 }
 
 function fitCanvasToImage(bitmap) {
-  const maxH = 420, maxW = imgCanvas.clientWidth;
+  const maxH = 420;
+  const maxW = imgCanvas.clientWidth;
   const ratio = Math.min(maxW / bitmap.width, maxH / bitmap.height);
-  imgCanvas.width = Math.floor(bitmap.width * ratio);
-  imgCanvas.height = Math.floor(bitmap.height * ratio);
+
+  const dpr = window.devicePixelRatio || 1;
+  imgCanvas.width = Math.floor(bitmap.width * ratio * dpr);
+  imgCanvas.height = Math.floor(bitmap.height * ratio * dpr);
   maskCanvas.width = imgCanvas.width;
   maskCanvas.height = imgCanvas.height;
+
+  imgCanvas.style.width = Math.floor(bitmap.width * ratio) + 'px';
+  imgCanvas.style.height = Math.floor(bitmap.height * ratio) + 'px';
+  maskCanvas.style.width = imgCanvas.style.width;
+  maskCanvas.style.height = imgCanvas.style.height;
+
+  ctxImg.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctxMask.setTransform(dpr, 0, 0, dpr, 0, 0);
 }
 
 function drawImage() {
   if (!imgBitmap) return;
+  ctxImg.setTransform(1,0,0,1,0,0);
   ctxImg.clearRect(0,0,imgCanvas.width,imgCanvas.height);
+  applyViewTransform(ctxImg);
   ctxImg.drawImage(imgBitmap, 0, 0, imgCanvas.width, imgCanvas.height);
 }
 
 function drawMasks() {
+  ctxMask.setTransform(1,0,0,1,0,0);
   ctxMask.clearRect(0,0,maskCanvas.width,maskCanvas.height);
+  applyViewTransform(ctxMask);
   state.masks.forEach((m) => {
     const selected = m.id === state.selectedId;
     ctxMask.fillStyle = selected ? "rgba(122,162,247,0.45)" : "rgba(58, 91, 160, 0.45)";
@@ -72,11 +106,10 @@ function drawMasks() {
 }
 
 function drawResizeHandles(m) {
-  const handles = corners(m);
+  const hs = corners(m);
   ctxMask.fillStyle = "#f7768e";
-  handles.forEach(h => ctxMask.fillRect(h.x-6, h.y-6, 12, 12));
+  hs.forEach(h => ctxMask.fillRect(h.x-6, h.y-6, 12, 12));
 }
-
 function corners(m) {
   return [
     { name:'nw', x: m.x, y: m.y },
@@ -86,8 +119,20 @@ function corners(m) {
   ];
 }
 
+function getCanvasPoint(evt, canvas) {
+  const rect = canvas.getBoundingClientRect();
+  const dpr = window.devicePixelRatio || 1;
+  const clientX = evt.touches ? evt.touches[0].clientX : evt.clientX;
+  const clientY = evt.touches ? evt.touches[0].clientY : evt.clientY;
+  const x = (clientX - rect.left) * dpr;
+  const y = (clientY - rect.top) * dpr;
+  // reverse view transform to get image space coords
+  const vx = (x - view.offsetX) / view.scale;
+  const vy = (y - view.offsetY) / view.scale;
+  return { x: vx, y: vy };
+}
+
 function findMaskAtPoint(x, y) {
-  // check resize handles first
   const sel = state.masks.find(mm => mm.id === state.selectedId);
   if (sel) {
     for (const h of corners(sel)) {
@@ -96,7 +141,6 @@ function findMaskAtPoint(x, y) {
       }
     }
   }
-  // then check masks
   for (let i = state.masks.length - 1; i >= 0; i--) {
     const m = state.masks[i];
     if (x >= m.x && x <= m.x + m.w && y >= m.y && y <= m.y + m.h) {
@@ -106,21 +150,11 @@ function findMaskAtPoint(x, y) {
   return { mask: null, handle: null };
 }
 
-imageInput.addEventListener('change', async (e) => {
-  const file = e.target.files[0];
-  if (!file) return;
-  const blob = await file.arrayBuffer();
-  imgBitmap = await createImageBitmap(new Blob([blob]));
-  fitCanvasToImage(imgBitmap);
-  drawImage();
-  state.masks = [];
-  state.selectedId = null;
-  state.image = file;
-  drawMasks();
-  ocrOutput.textContent = "Image loaded. Ready for OCR or masks.";
-});
+let dragMode = null; // 'draw'|'move'|'resize'
+let dragStart = null; // {x,y}
+let resizeCorner = null;
+let activeMask = null;
 
-// Touch & mouse events for maskCanvas
 function startDraw(evt) {
   evt.preventDefault();
   const { x, y } = getCanvasPoint(evt, maskCanvas);
@@ -136,11 +170,9 @@ function startDraw(evt) {
     dragMode = 'move';
     dragStart = { x, y, ox: x - activeMask.x, oy: y - activeMask.y };
   } else {
-    // start drawing a new mask
     dragMode = 'draw';
     dragStart = { x, y };
-    state.selectedId = null;
-    activeMask = null;
+    state.selectedId = null; activeMask = null;
   }
   drawMasks();
 }
@@ -149,9 +181,7 @@ function moveDraw(evt) {
   if (!dragMode) return;
   evt.preventDefault();
   const { x, y } = getCanvasPoint(evt, maskCanvas);
-
   if (dragMode === 'draw') {
-    // draw temp rectangle
     drawImage(); drawMasks();
     const temp = normalizeRect(dragStart.x, dragStart.y, x, y);
     ctxMask.fillStyle = "rgba(247,118,142,0.35)";
@@ -159,8 +189,7 @@ function moveDraw(evt) {
     ctxMask.strokeStyle = "#f7768e";
     ctxMask.strokeRect(temp.x, temp.y, temp.w, temp.h);
   } else if (dragMode === 'move' && activeMask) {
-    activeMask.x = x - dragStart.ox;
-    activeMask.y = y - dragStart.oy;
+    activeMask.x = x - dragStart.ox; activeMask.y = y - dragStart.oy;
     clampMask(activeMask);
     drawImage(); drawMasks();
   } else if (dragMode === 'resize' && activeMask) {
@@ -177,43 +206,69 @@ function endDraw(evt) {
   if (dragMode === 'draw') {
     const rect = normalizeRect(dragStart.x, dragStart.y, x, y);
     if (rect.w * rect.h > 25) {
-      state.masks.push({ ...rect, id: genId() });
+      addMask(rect);
       state.selectedId = state.masks[state.masks.length - 1].id;
     }
+  } else if (dragMode === 'move' || dragMode === 'resize') {
+    pushHistory();
   }
-  dragMode = null;
-  dragStart = null;
-  resizeCorner = null;
-  activeMask = null;
+  dragMode = null; dragStart = null; resizeCorner = null; activeMask = null;
   drawMasks();
 }
 
 function dblTapDelete(evt) {
-  // double-tap to delete selected
   const { x, y } = getCanvasPoint(evt, maskCanvas);
   const hit = findMaskAtPoint(x, y);
-  if (hit.mask) {
-    const idx = state.masks.findIndex(m => m.id === hit.mask.id);
-    if (idx >= 0) {
-      state.masks.splice(idx, 1);
-      if (state.selectedId === hit.mask.id) state.selectedId = null;
-      drawMasks();
-    }
-  }
+  if (hit.mask) deleteMaskById(hit.mask.id);
 }
 
-// mouse
+function addMask(rect) { state.masks.push({ ...rect, id: genId() }); pushHistory(); drawMasks(); }
+function deleteMaskById(id) {
+  const idx = state.masks.findIndex(m => m.id === id);
+  if (idx >= 0) { state.masks.splice(idx, 1); pushHistory(); drawMasks(); }
+}
+
 maskCanvas.addEventListener('mousedown', startDraw);
 maskCanvas.addEventListener('mousemove', moveDraw);
 maskCanvas.addEventListener('mouseup', endDraw);
 maskCanvas.addEventListener('dblclick', dblTapDelete);
-// touch
 maskCanvas.addEventListener('touchstart', startDraw, { passive: false });
 maskCanvas.addEventListener('touchmove', moveDraw, { passive: false });
 maskCanvas.addEventListener('touchend', endDraw, { passive: false });
 maskCanvas.addEventListener('touchcancel', endDraw, { passive: false });
 
-// helpers
+// Pinch zoom and pan
+maskCanvas.addEventListener('touchmove', (e) => {
+  if (e.touches.length === 2) {
+    e.preventDefault();
+    const [t1, t2] = e.touches;
+    const dist = Math.hypot(t1.clientX - t2.clientX, t1.clientY - t2.clientY);
+    if (!maskCanvas._lastDist) maskCanvas._lastDist = dist;
+    const delta = dist / maskCanvas._lastDist;
+    view.scale = Math.min(3, Math.max(0.5, view.scale * delta));
+    maskCanvas._lastDist = dist;
+    drawImage(); drawMasks();
+  }
+}, { passive: false });
+maskCanvas.addEventListener('touchend', () => { maskCanvas._lastDist = null; });
+
+let lastPan = null;
+maskCanvas.addEventListener('touchstart', (e) => {
+  if (e.touches.length === 1 && !dragMode) lastPan = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+}, { passive: false });
+maskCanvas.addEventListener('touchmove', (e) => {
+  if (e.touches.length === 1 && lastPan && !dragMode) {
+    e.preventDefault();
+    const x = e.touches[0].clientX, y = e.touches[0].clientY;
+    view.offsetX += (x - lastPan.x);
+    view.offsetY += (y - lastPan.y);
+    lastPan = { x, y };
+    drawImage(); drawMasks();
+  }
+}, { passive: false });
+maskCanvas.addEventListener('touchend', () => { lastPan = null; });
+
+// Helpers
 function normalizeRect(x0, y0, x1, y1) {
   let x = x0, y = y0, w = x1 - x0, h = y1 - y0;
   if (w < 0) { x = x1; w = -w; }
@@ -221,8 +276,8 @@ function normalizeRect(x0, y0, x1, y1) {
   return { x: Math.round(x), y: Math.round(y), w: Math.round(w), h: Math.round(h) };
 }
 function clampMask(m) {
-  m.x = Math.max(0, Math.min(m.x, maskCanvas.width - m.w));
-  m.y = Math.max(0, Math.min(m.y, maskCanvas.height - m.h));
+  m.x = Math.max(0, Math.min(m.x, imgCanvas.width - m.w));
+  m.y = Math.max(0, Math.min(m.y, imgCanvas.height - m.h));
 }
 function resizeMask(m, corner, x, y) {
   const right = m.x + m.w, bottom = m.y + m.h;
@@ -246,48 +301,86 @@ function resizeMask(m, corner, x, y) {
 }
 function genId() { return 'm_' + Math.random().toString(36).slice(2); }
 
-// OCR
+// Image load
+imageInput.addEventListener('change', async (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const blob = await file.arrayBuffer();
+  imgBitmap = await createImageBitmap(new Blob([blob]));
+  fitCanvasToImage(imgBitmap);
+  state.masks = []; state.selectedId = null; state.image = file;
+  history.stack = []; history.idx = -1; pushHistory();
+  drawImage(); drawMasks();
+  ocrOutput.textContent = "Image loaded. Ready for OCR or masks.";
+});
+
+// OCR with light preprocessing
+async function ocrPreprocessed(file) {
+  const blob = await file.arrayBuffer();
+  const bmp = await createImageBitmap(new Blob([blob]));
+  const c = document.createElement('canvas');
+  c.width = bmp.width * 1.5; c.height = bmp.height * 1.5;
+  const cx = c.getContext('2d');
+  cx.drawImage(bmp, 0, 0, c.width, c.height);
+  const imgData = cx.getImageData(0,0,c.width,c.height);
+  const d = imgData.data;
+  for (let i=0;i<d.length;i+=4) { d[i]=Math.min(255,d[i]*1.12); d[i+1]=Math.min(255,d[i+1]*1.12); d[i+2]=Math.min(255,d[i+2]*1.12); }
+  cx.putImageData(imgData,0,0);
+  return Tesseract.recognize(c.toDataURL('image/png'), 'eng', {});
+}
+
 document.getElementById('scanOcrBtn').addEventListener('click', async () => {
   if (!state.image) { ocrOutput.textContent = "Upload an image first."; return; }
   ocrOutput.textContent = "Scanning with OCR…";
-  const { data } = await Tesseract.recognize(state.image, 'eng', { logger: m => {} });
+  const { data } = await ocrPreprocessed(state.image);
   state.ocrText = data.text;
-  ocrOutput.textContent = state.ocrText.trim() || "(No text detected. Try higher quality or zoom.)";
+  ocrOutput.textContent = state.ocrText.trim() || "(No text detected. Try clearer image.)";
 });
 
-// Auto-occlusion using OCR words
+// Auto-occlusion: group words into line/label boxes
 document.getElementById('autoOccludeBtn').addEventListener('click', async () => {
   if (!state.image) { ocrOutput.textContent = "Upload an image first."; return; }
-  ocrOutput.textContent = "Finding text boxes…";
-  const res = await Tesseract.recognize(state.image, 'eng', { });
-  const scaleX = imgCanvas.width / res.data.imageSize.width;
-  const scaleY = imgCanvas.height / res.data.imageSize.height;
+  ocrOutput.textContent = "Auto-occluding labels…";
 
-  // Collect word boxes and merge nearby ones
-  const wordBoxes = [];
-  res.data.blocks.forEach(b => b.paragraphs.forEach(p => p.lines.forEach(l => l.words.forEach(w => {
-    const x = Math.floor(w.bbox.x0 * scaleX);
-    const y = Math.floor(w.bbox.y0 * scaleY);
-    const wdt = Math.floor((w.bbox.x1 - w.bbox.x0) * scaleX);
-    const hgt = Math.floor((w.bbox.y1 - w.bbox.y0) * scaleY);
-    if (wdt*hgt > 30) wordBoxes.push({ x, y, w: wdt, h: hgt });
-  }))));
+  const res = await Tesseract.recognize(state.image, 'eng', {});
+  const imgW = res.data.imageSize.width;
+  const imgH = res.data.imageSize.height;
+  const scaleX = imgCanvas.width / imgW;
+  const scaleY = imgCanvas.height / imgH;
 
-  const merged = mergeBoxes(wordBoxes, 12);
-  // Add as masks
-  merged.forEach(r => state.masks.push({ ...r, id: genId() }));
-  drawMasks();
-  ocrOutput.textContent = "Auto-occlusion complete. Adjust masks as needed.";
+  const lineBoxes = [];
+  res.data.blocks.forEach(b => b.paragraphs.forEach(p => p.lines.forEach(l => {
+    const words = l.words.map(w => {
+      const x0 = Math.floor(w.bbox.x0 * scaleX);
+      const y0 = Math.floor(w.bbox.y0 * scaleY);
+      const x1 = Math.floor(w.bbox.x1 * scaleX);
+      const y1 = Math.floor(w.bbox.y1 * scaleY);
+      return { x: x0, y: y0, w: x1 - x0, h: y1 - y0, text: w.text || '' };
+    });
+    if (words.length === 0) return;
+    const minX = Math.min(...words.map(w => w.x));
+    const minY = Math.min(...words.map(w => w.y));
+    const maxX = Math.max(...words.map(w => w.x + w.w));
+    const maxY = Math.max(...words.map(w => w.y + w.h));
+    const text = words.map(w => w.text).join(' ').trim();
+    if (text.length >= 3 && /[A-Za-z]/.test(text) && (maxX-minX)*(maxY-minY) > 60) {
+      lineBoxes.push({ x: minX, y: minY, w: maxX - minX, h: maxY - minY, text });
+    }
+  })));
+
+  const merged = mergeBoxes(lineBoxes, 10);
+  merged.forEach(r => state.masks.push({ x: r.x, y: r.y, w: r.w, h: r.h, id: genId() }));
+  pushHistory(); drawImage(); drawMasks();
+  ocrOutput.textContent = `Auto-occluded ${merged.length} labels. Adjust as needed.`;
 });
 
 function mergeBoxes(boxes, pad = 8) {
-  // simple clustering: merge overlapping/nearby boxes horizontally or vertically
   const out = [];
   boxes.sort((a,b)=> a.y === b.y ? a.x - b.x : a.y - b.y);
   for (const b of boxes) {
     let merged = false;
     for (const o of out) {
-      if (overlapsOrNear(o, b, pad)) {
+      if (!(o.x > b.x + b.w + pad || o.x + o.w + pad < b.x || o.y > b.y + b.h + pad || o.y + o.h + pad < b.y)) {
         const nx = Math.min(o.x, b.x);
         const ny = Math.min(o.y, b.y);
         const rx = Math.max(o.x + o.w, b.x + b.w);
@@ -300,22 +393,26 @@ function mergeBoxes(boxes, pad = 8) {
   }
   return out;
 }
-function overlapsOrNear(a, b, pad) {
-  return !(a.x > b.x + b.w + pad || a.x + a.w + pad < b.x || a.y > b.y + b.h + pad || a.y + a.h + pad < b.y);
-}
 
-// Add manual blank mask
+// Add manual mask
 document.getElementById('addMaskBtn').addEventListener('click', () => {
-  state.masks.push({ x: 20, y: 20, w: 120, h: 60, id: genId() });
+  addMask({ x: 20, y: 20, w: 120, h: 60 });
   state.selectedId = state.masks[state.masks.length - 1].id;
-  drawMasks();
+});
+
+// One-click deck generation
+document.getElementById('oneClickDeckBtn').addEventListener('click', async () => {
+  if (!state.image) { alert("Upload an image first."); return; }
+  const res = await ocrPreprocessed(state.image);
+  state.ocrText = res.data.text || '';
+  const evt = new Event('click');
+  document.getElementById('autoOccludeBtn').dispatchEvent(evt);
+  setTimeout(() => document.getElementById('bulkCreateBtn').click(), 500);
 });
 
 // Bulk create occlusion cards
 document.getElementById('bulkCreateBtn').addEventListener('click', () => {
-  if (!imgBitmap || state.masks.length === 0) {
-    alert("Load an image and add masks first."); return;
-  }
+  if (!imgBitmap || state.masks.length === 0) { alert("Load an image and add masks first."); return; }
   const cards = state.masks.map((m, idx) => {
     const front = renderImageWithSingleMask(m);
     const back = renderImageWithoutMasks();
@@ -333,7 +430,6 @@ function renderImageWithoutMasks() {
   cx.drawImage(imgBitmap, 0, 0, c.width, c.height);
   return c.toDataURL('image/png');
 }
-
 function renderImageWithSingleMask(mask) {
   const c = document.createElement('canvas');
   c.width = imgCanvas.width; c.height = imgCanvas.height;
@@ -351,14 +447,12 @@ const geminiKeyInput = document.getElementById('geminiKey');
 document.getElementById('settingsBtn').addEventListener('click', () => {
   alert("Enter your Gemini API key in the AI section. It’s stored locally.");
 });
-
 document.getElementById('generateAiBtn').addEventListener('click', async () => {
   const key = geminiKeyInput.value.trim();
   if (!key) { alert("Add your Gemini API key first."); return; }
   const mode = document.getElementById('aiMode').value;
   const src = document.getElementById('aiSourceText').value.trim() || state.ocrText;
   if (!src) { alert("Provide text via OCR or paste."); return; }
-
   const prompt = buildPrompt(mode, src);
   try {
     const output = await callGeminiJSON(key, prompt);
@@ -366,12 +460,8 @@ document.getElementById('generateAiBtn').addEventListener('click', async () => {
     renderAiCards();
     state.deck.push(...state.aiCards.map(c => ({ ...c, id: `ai_${Date.now()}_${Math.random()}` })));
     renderDeckList();
-  } catch (e) {
-    alert("AI generation failed. Check your key or try shorter text.");
-  }
+  } catch (e) { alert("AI generation failed. Check your key or try shorter text."); }
 });
-
-// AI suggests occlusion keywords
 document.getElementById('suggestOccludeBtn').addEventListener('click', async () => {
   const key = geminiKeyInput.value.trim();
   const text = state.ocrText.trim();
@@ -384,8 +474,7 @@ ${text}`;
   try {
     const res = await callGeminiJSON(key, prompt);
     const terms = res.terms || [];
-    if (terms.length === 0) { alert("No terms suggested."); return; }
-    alert("Suggested terms: " + terms.slice(0,10).join(', '));
+    alert(terms.length ? ("Suggested terms: " + terms.slice(0,10).join(', ')) : "No terms suggested.");
   } catch (e) { alert("AI suggestion failed."); }
 });
 
@@ -399,23 +488,16 @@ Return JSON: { "cards": [ { "front": "...", "back": "...", "tags": ["auto"], "ty
 For cloze, use {{c1::...}} format on front and plain on back.
 For mcq, front: question + choices A-D; back: correct answer + brief explanation.`;
 }
-
-// Minimal Gemini JSON call (text-only)
 async function callGeminiJSON(key, prompt) {
   const resp = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key="+encodeURIComponent(key), {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      contents: [{ parts: [{ text: prompt }]}]
-    })
+    method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ contents: [{ parts: [{ text: prompt }]}] })
   });
   const data = await resp.json();
   const text = data?.candidates?.[0]?.content?.parts?.[0]?.text || "";
   const m = text.match(/\{[\s\S]*\}/);
-  const json = m ? JSON.parse(m[0]) : { cards: [] };
-  return json;
+  return m ? JSON.parse(m[0]) : { cards: [] };
 }
-
 function renderAiCards() {
   const aiList = document.getElementById('aiCards');
   aiList.innerHTML = "";
@@ -465,35 +547,27 @@ document.getElementById('saveLocalBtn').addEventListener('click', () => {
   localStorage.setItem('occludex_gemini_key', geminiKeyInput.value);
   alert("Saved locally.");
 });
-
 document.getElementById('loadLocalBtn').addEventListener('click', () => {
   const payload = JSON.parse(localStorage.getItem('occludex_deck') || '{}');
   if (payload.deck) {
-    state.deck = payload.deck;
-    state.masks = payload.masks || [];
+    state.deck = payload.deck; state.masks = payload.masks || [];
     document.getElementById('deckName').value = payload.name || 'Deck';
     document.getElementById('deckTag').value = payload.tag || 'tag';
     geminiKeyInput.value = localStorage.getItem('occludex_gemini_key') || '';
-    drawMasks();
-    renderDeckList();
+    drawImage(); drawMasks(); renderDeckList();
     alert("Loaded deck.");
-  } else {
-    alert("No saved deck found.");
-  }
+  } else { alert("No saved deck found."); }
 });
-
 document.getElementById('clearLocalBtn').addEventListener('click', () => {
-  localStorage.removeItem('occludex_deck');
-  alert("Cleared local deck.");
+  localStorage.removeItem('occludex_deck'); alert("Cleared local deck.");
 });
 
-// Export .apkg (correct API)
+// Export .apkg with media
 document.getElementById('exportApkgBtn').addEventListener('click', async () => {
   if (state.deck.length === 0) { alert("No cards to export."); return; }
   const deckName = document.getElementById('deckName').value || "OccludeX Deck";
   const apkg = new window.AnkiExport(deckName);
 
-  // Add notes; embed images if occlusion
   const media = [];
   for (const c of state.deck) {
     if (c.type === 'occlusion' && c.front.startsWith('data:image')) {
@@ -501,9 +575,7 @@ document.getElementById('exportApkgBtn').addEventListener('click', async () => {
       const fnameBack = `back_${Math.random().toString(36).slice(2)}.png`;
       media.push([fnameFront, dataUrlToBlob(c.front)]);
       media.push([fnameBack, dataUrlToBlob(c.back)]);
-      const frontHTML = `<img src="${fnameFront}" style="max-width:100%">`;
-      const backHTML = `<img src="${fnameBack}" style="max-width:100%">`;
-      apkg.addCard(frontHTML, backHTML, (c.tags||[]).join(' '));
+      apkg.addCard(`<img src="${fnameFront}" style="max-width:100%">`, `<img src="${fnameBack}" style="max-width:100%">`, (c.tags||[]).join(' '));
     } else {
       apkg.addCard(c.front, c.back, (c.tags||[]).join(' '));
     }
@@ -513,13 +585,9 @@ document.getElementById('exportApkgBtn').addEventListener('click', async () => {
     const zipBlob = await apkg.saveAsBlob(media);
     const url = URL.createObjectURL(zipBlob);
     const a = document.createElement('a');
-    a.href = url;
-    a.download = deckName.replace(/\s+/g,'_') + ".apkg";
-    a.click();
+    a.href = url; a.download = deckName.replace(/\s+/g,'_') + ".apkg"; a.click();
     URL.revokeObjectURL(url);
-  } catch (e) {
-    alert("Export failed. Try fewer/lighter images. " + (e?.message||""));
-  }
+  } catch (e) { alert("Export failed. Try fewer/lighter images. " + (e?.message||"")); }
 });
 
 function dataUrlToBlob(dataUrl) {
@@ -542,20 +610,15 @@ document.getElementById('startReviewBtn').addEventListener('click', () => {
   if (!card) { alert("No cards available."); return; }
   showReviewCard(card);
 });
-
 function showReviewCard(card) {
   const el = document.getElementById('reviewCard');
   el.innerHTML = `<div class="card">
     <div><strong>Front</strong></div>
     <div>${card.front.startsWith('data:image') ? `<img src="${card.front}" style="max-width:100%">` : escapeHtml(card.front)}</div>
-    <hr>
-    <div style="opacity:0.6">Rate below to reveal and schedule.</div>
+    <hr><div style="opacity:0.6">Rate below to reveal and schedule.</div>
   </div>`;
-  document.querySelectorAll('.reviewBtns .btn').forEach(btn => {
-    btn.onclick = () => rateCard(card, btn.dataset.rate);
-  });
+  document.querySelectorAll('.reviewBtns .btn').forEach(btn => { btn.onclick = () => rateCard(card, btn.dataset.rate); });
 }
-
 function rateCard(card, rate) {
   const el = document.getElementById('reviewCard');
   el.innerHTML = `<div class="card">
@@ -580,9 +643,5 @@ function escapeHtml(s) {
 
 // PWA install prompt
 let deferredPrompt = null;
-window.addEventListener('beforeinstallprompt', (e) => {
-  e.preventDefault(); deferredPrompt = e;
-});
-document.getElementById('installBtn').addEventListener('click', async () => {
-  if (deferredPrompt) { deferredPrompt.prompt(); deferredPrompt = null; }
-});
+window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); deferredPrompt = e; });
+document.getElementById('installBtn').addEventListener('click', async () => { if (deferredPrompt) { deferredPrompt.prompt(); deferredPrompt = null; } });
