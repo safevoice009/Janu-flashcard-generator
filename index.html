@@ -4,175 +4,236 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Anki Super-Generator</title>
-    <!-- 1. Tailwind CSS --><script src="https://cdn.tailwindcss.com"></script>
     
-    <!-- 2. Tesseract.js (for Image Occlusion) --><!-- IMPORTANT: Loading Tesseract.js worker from CDN for reliability on GitHub Pages --><script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+    <!-- 1. Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
     
-    <!-- 3. genanki-js (for .apkg generation) --><script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <!-- 2. Tesseract.js (for Image Occlusion) -->
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+    
+    <!-- 3. genanki-js (for .apkg generation) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.3/sql-asm.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/genanki-js/dist/genanki.browser.js"></script>
+    <!-- 
+      FIX 1: Changed genanki.browser.js to genanki.js
+      The 'browser' version was not exporting the global 'genanki' variable correctly.
+      The 'genanki.js' file is the correct one to use from the CDN.
+    -->
+    <script src="https://cdn.jsdelivr.net/npm/genanki-js/dist/genanki.js"></script>
     
-    <!-- 4. PDF.js (for PDF parsing) --><script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
+    <!-- 4. PDF.js (for PDF parsing) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
     <script>pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';</script>
     
-    <!-- 5. Mammoth.js (for DOCX parsing) --><script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+    <!-- 5. Mammoth.js (for DOCX parsing) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
 
+    <!-- 
+      FEATURE: Light/Dark Mode & Glassmorphism 
+      This script checks the user's system preference and applies dark mode immediately.
+      The CSS styles below are updated to support this and add the glass effect.
+    -->
+    <script>
+        if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            document.documentElement.classList.add('dark');
+        } else {
+            document.documentElement.classList.remove('dark');
+        }
+    </script>
     <style>
         body { font-family: 'Inter', sans-serif; }
         .nav-button {
             transition: all 0.2s;
             border-bottom: 4px solid transparent;
+            @apply text-gray-500 dark:text-gray-400;
         }
         .nav-button.active {
-            border-bottom-color: #3b82f6; /* blue-500 */
-            color: #2563eb; /* blue-600 */
+            @apply border-indigo-500 text-indigo-600 dark:text-indigo-400;
         }
         .page { display: none; }
         .page.active { display: block; }
+        
+        /* Glassmorphism Card Style */
+        .glass-card {
+            @apply bg-white/70 dark:bg-gray-800/70 backdrop-blur-md border border-gray-200 dark:border-gray-700 shadow-lg rounded-lg;
+        }
+        
+        /* Modal Backdrop Style */
+        .modal-backdrop {
+            @apply fixed inset-0 bg-gray-900/70 backdrop-blur-sm flex items-center justify-center z-50;
+        }
+
+        /* Modal Content Style */
+        .modal-content {
+            @apply bg-white dark:bg-gray-800 rounded-lg p-8 shadow-xl w-full;
+        }
+        
+        /* Form Input Style */
+        .form-input {
+            @apply mt-1 block w-full border-gray-300 dark:border-gray-600 dark:bg-gray-900/50 dark:text-gray-100 rounded-md shadow-sm dark:placeholder-gray-500;
+        }
+        
+        /* Primary Button Style */
+        .btn-primary {
+            @apply w-full bg-indigo-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 transition-colors;
+        }
+
         #io-image-container { position: relative; width: 100%; max-width: 900px; margin: auto; }
         #io-canvas { position: absolute; top: 0; left: 0; cursor: crosshair; }
         #io-display-image { display: block; width: 100%; height: auto; }
     </style>
 </head>
-<body class="bg-gray-100 text-gray-900">
+<body class="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100 transition-colors">
 
-    <!-- === SETTINGS MODAL === --><div id="settings-modal" class="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center z-50">
-        <div class="bg-white rounded-lg p-8 shadow-xl w-full max-w-2xl">
-            <h2 class="text-2xl font-bold mb-4">Welcome! Set Up Your App</h2>
-            <p class="mb-4 text-gray-600">Please paste your API key below. This app runs 100% in your browser, so your key is safe and only stored on your computer.</p>
+    <!-- === SETTINGS MODAL === -->
+    <div id="settings-modal" class="modal-backdrop">
+        <div class="modal-content max-w-2xl">
+            <h2 class="text-2xl font-bold mb-4 dark:text-white">Welcome! Set Up Your App</h2>
+            <p class="mb-4 text-gray-600 dark:text-gray-400">Please paste your API key below. This app runs 100% in your browser, so your key is safe and only stored on your computer.</p>
             
-            <label for="api-key" class="block text-sm font-medium text-gray-700">Google AI (Gemini) API Key</label>
-            <input type="password" id="api-key" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm" placeholder="Paste Gemini API key">
-            <p class="text-xs text-gray-500 mt-1 mb-4">Get a free key from <a href="https://aistudio.google.com/app/apikey" target="_blank" class="text-blue-600 hover:underline">Google AI Studio</a>.</p>
+            <label for="api-key" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Google AI (Gemini) API Key</label>
+            <input type="password" id="api-key" class="form-input" placeholder="Paste Gemini API key">
+            <p class="text-xs text-gray-500 dark:text-gray-400 mt-1 mb-4">Get a free key from <a href="https://aistudio.google.com/app/apikey" target="_blank" class="text-indigo-600 dark:text-indigo-400 hover:underline">Google AI Studio</a>.</p>
             
-            <button id="save-settings" class="w-full bg-blue-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-700">Save and Start</button>
+            <button id="save-settings" class="btn-primary py-2">Save and Start</button>
         </div>
     </div>
     
-    <!-- === LOADING MODAL === --><div id="loading-modal" class="hidden fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center z-50">
-        <div class="bg-white rounded-lg p-8 shadow-xl flex items-center space-x-4">
-            <svg class="animate-spin h-8 w-8 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-            <div><h3 id="loading-status" class="text-xl font-medium">Please wait...</h3></div>
+    <!-- === LOADING MODAL === -->
+    <div id="loading-modal" class="modal-backdrop hidden">
+        <div class="bg-white dark:bg-gray-800 rounded-lg p-8 shadow-xl flex items-center space-x-4">
+            <svg class="animate-spin h-8 w-8 text-indigo-600 dark:text-indigo-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+            <div><h3 id="loading-status" class="text-xl font-medium dark:text-white">Please wait...</h3></div>
         </div>
     </div>
     
-    <!-- === HEADER & NAVIGATION === --><header class="bg-white shadow-md">
+    <!-- === HEADER & NAVIGATION === -->
+    <header class="glass-card sticky top-0 z-40">
         <nav class="container mx-auto max-w-7xl flex items-center justify-between p-4">
-            <h1 class="text-2xl font-bold text-blue-700">Anki Super-Generator</h1>
+            <h1 class="text-2xl font-bold text-indigo-600 dark:text-indigo-400">Anki Super-Generator</h1>
             <div class="flex space-x-2 md:space-x-6">
                 <button class="nav-button active" data-page="page-home">Create</button>
                 <button class="nav-button" data-page="page-image-gen">Image Occlusion</button>
             </div>
-            <button id="settings-button" class="text-gray-500 hover:text-blue-600">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.096 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+            <button id="settings-button" class="text-gray-500 hover:text-indigo-600 dark:text-gray-400 dark:hover:text-indigo-400">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826 3.31 2.37-2.37.996.608 2.296.096 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
             </button>
         </nav>
     </header>
 
-    <!-- === MAIN CONTENT === --><main class="container mx-auto max-w-7xl p-4 md:p-8">
+    <!-- === MAIN CONTENT === -->
+    <main class="container mx-auto max-w-7xl p-4 md:p-8">
 
-        <!-- === PAGE: HOME / CREATE === --><div id="page-home" class="page active">
+        <!-- === PAGE: HOME / CREATE === -->
+        <div id="page-home" class="page active">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 
-                <!-- Topic Generator --><div class="bg-white p-6 rounded-lg shadow-md">
-                    <h2 class="text-2xl font-bold mb-4">Generate from Topic</h2>
+                <!-- Topic Generator -->
+                <div class="glass-card p-6">
+                    <h2 class="text-2xl font-bold mb-4 dark:text-white">Generate from Topic</h2>
                     <div class="space-y-4">
                         <div>
-                            <label for="topic" class="block text-sm font-medium text-gray-700">Topic</label>
-                            <input type="text" id="topic" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm" placeholder="e.g., 'The French Revolution'">
+                            <label for="topic" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Topic</label>
+                            <input type="text" id="topic" class="form-input" placeholder="e.g., 'The French Revolution'">
                         </div>
                         <div>
-                            <label for="topic-deck-name" class="block text-sm font-medium text-gray-700">Deck Name</label>
-                            <input type="text" id="topic-deck-name" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm" placeholder="e.g., 'History: French Revolution'">
+                            <label for="topic-deck-name" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Deck Name</label>
+                            <input type="text" id="topic-deck-name" class="form-input" placeholder="e.g., 'History: French Revolution'">
                         </div>
                         <div>
-                            <label for="topic-num-cards" class="block text-sm font-medium text-gray-700">Number of Cards</label>
-                            <input type="number" id="topic-num-cards" value="10" min="1" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
+                            <label for="topic-num-cards" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Number of Cards</label>
+                            <input type="number" id="topic-num-cards" value="10" min="1" class="form-input">
                         </div>
-                        <button id="generate-topic" class="w-full bg-blue-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-blue-700">Generate Deck</button>
+                        <button id="generate-topic" class="btn-primary">Generate Deck</button>
                     </div>
                 </div>
 
-                <!-- Text Generator --><div class="bg-white p-6 rounded-lg shadow-md">
-                    <h2 class="text-2xl font-bold mb-4">Generate from Text</h2>
+                <!-- Text Generator -->
+                <div class="glass-card p-6">
+                    <h2 class="text-2xl font-bold mb-4 dark:text-white">Generate from Text</h2>
                     <div class="space-y-4">
                         <div>
-                            <label for="text-input" class="block text-sm font-medium text-gray-700">Paste your text</label>
-                            <textarea id="text-input" rows="8" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm" placeholder="Paste your study notes here..."></textarea>
+                            <label for="text-input" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Paste your text</label>
+                            <textarea id="text-input" rows="8" class="form-input" placeholder="Paste your study notes here..."></textarea>
                         </div>
                         <div>
-                            <label for="text-deck-name" class="block text-sm font-medium text-gray-700">Deck Name</label>
-                            <input type="text" id="text-deck-name" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm" placeholder="e.g., 'My Biology Notes'">
+                            <label for="text-deck-name" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Deck Name</label>
+                            <input type="text" id="text-deck-name" class="form-input" placeholder="e.g., 'My Biology Notes'">
                         </div>
                         <div>
-                            <label for="text-num-cards" class="block text-sm font-medium text-gray-700">Number of Cards</label>
-                            <input type="number" id="text-num-cards" value="20" min="1" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
+                            <label for="text-num-cards" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Number of Cards</label>
+                            <input type="number" id="text-num-cards" value="20" min="1" class="form-input">
                         </div>
-                        <button id="generate-text" class="w-full bg-blue-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-blue-700">Generate Deck</button>
+                        <button id="generate-text" class="btn-primary">Generate Deck</button>
                     </div>
                 </div>
                 
-                <!-- File Generator --><div class="bg-white p-6 rounded-lg shadow-md md:col-span-2">
-                    <h2 class="text-2xl font-bold mb-4">Generate from File (PDF or DOCX)</h2>
+                <!-- File Generator -->
+                <div class="glass-card p-6 md:col-span-2">
+                    <h2 class="text-2xl font-bold mb-4 dark:text-white">Generate from File (PDF or DOCX)</h2>
                     <div class="space-y-4">
                         <div>
-                            <label for="file-upload" class="block text-sm font-medium text-gray-700">Upload .pdf or .docx</label>
-                            <input id="file-upload" type="file" accept=".pdf,.docx" class="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"/>
+                            <label for="file-upload" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Upload .pdf or .docx</label>
+                            <input id="file-upload" type="file" accept=".pdf,.docx" class="mt-1 block w-full text-sm text-gray-500 dark:text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 dark:file:bg-indigo-900/50 dark:file:text-indigo-300 dark:hover:file:bg-indigo-800"/>
                         </div>
                         <div>
-                            <label for="file-deck-name" class="block text-sm font-medium text-gray-700">Deck Name</label>
-                            <input type="text" id="file-deck-name" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm" placeholder="e.g., 'Chapter 5 Study Guide'">
+                            <label for="file-deck-name" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Deck Name</label>
+                            <input type="text" id="file-deck-name" class="form-input" placeholder="e.g., 'Chapter 5 Study Guide'">
                         </div>
                         <div>
-                            <label for="file-num-cards" class="block text-sm font-medium text-gray-700">Number of Cards</label>
-                            <input type="number" id="file-num-cards" value="20" min="1" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
+                            <label for="file-num-cards" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Number of Cards</label>
+                            <input type="number" id="file-num-cards" value="20" min="1" class="form-input">
                         </div>
-                        <button id="generate-file" class="w-full bg-blue-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-blue-700">Generate Deck</button>
+                        <button id="generate-file" class="btn-primary">Generate Deck</button>
                     </div>
                 </div>
             </div>
             
-            <!-- Log Output --><div class="mt-6 bg-white p-6 rounded-lg shadow-md">
-                <label class="block text-sm font-medium text-gray-700 mb-2">Generation Log</label>
-                <textarea id="log-output" rows="10" class="w-full p-2 bg-gray-900 text-green-400 font-mono text-sm rounded-md border border-gray-700" readonly>Waiting for task...</textarea>
+            <!-- Log Output -->
+            <div class="glass-card mt-6 p-6">
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Generation Log</label>
+                <textarea id="log-output" rows="10" class="w-full p-2 bg-gray-900 dark:bg-black/50 text-green-400 font-mono text-sm rounded-md border border-gray-700" readonly>Waiting for task...</textarea>
             </div>
         </div>
 
-        <!-- === PAGE: IMAGE OCCLUSION === --><div id="page-image-gen" class="page">
+        <!-- === PAGE: IMAGE OCCLUSION === -->
+        <div id="page-image-gen" class="page">
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                <!-- IO Controls --><div class="lg:col-span-1 bg-white p-6 rounded-lg shadow-md h-fit">
-                    <h2 class="text-2xl font-bold mb-4">Image Occlusion</h2>
+                <!-- IO Controls -->
+                <div class="glass-card p-6 h-fit">
+                    <h2 class="text-2xl font-bold mb-4 dark:text-white">Image Occlusion</h2>
                     <div>
-                        <label for="io-image-upload" class="block text-sm font-medium text-gray-700 mb-2">1. Upload Image</label>
-                        <input id="io-image-upload" type="file" accept="image/*" class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"/>
+                        <label for="io-image-upload" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">1. Upload Image</label>
+                        <input id="io-image-upload" type="file" accept="image/*" class="block w-full text-sm text-gray-500 dark:text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 dark:file:bg-indigo-900/50 dark:file:text-indigo-300 dark:hover:file:bg-indigo-800"/>
                     </div>
                     <div class="mt-6">
-                        <label class="block text-sm font-medium text-gray-700 mb-2">2. Scan & Select Text</label>
-                        <button id="io-scan-button" disabled class="w-full bg-gray-500 text-white font-bold py-2 px-4 rounded-lg transition disabled:opacity-50">Scan Image</button>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">2. Scan & Select Text</label>
+                        <button id="io-scan-button" disabled class="w-full bg-gray-500 text-white font-bold py-2 px-4 rounded-lg transition disabled:opacity-50 enabled:bg-indigo-600 enabled:hover:bg-indigo-700 dark:enabled:bg-indigo-500 dark:enabled:hover:bg-indigo-600">Scan Image</button>
                     </div>
                     <div class="mt-4 flex items-center justify-between">
-                        <label for="io-manual-toggle" class="block text-sm font-medium text-gray-700">Manual Mode</label>
-                        <input type="checkbox" id="io-manual-toggle" class="h-4 w-4 text-blue-600 rounded">
+                        <label for="io-manual-toggle" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Manual Mode</label>
+                        <input type="checkbox" id="io-manual-toggle" class="h-4 w-4 text-indigo-600 rounded">
                     </div>
                     <div class="mt-6">
-                        <label class="block text-sm font-medium text-gray-700 mb-2">3. Review Occlusions</label>
-                        <div id="io-occlusion-list" class="h-40 bg-gray-50 rounded-lg p-2 overflow-y-auto border">
-                            <p id="io-placeholder" class="text-center text-gray-500 p-4">Selected text appears here.</p>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">3. Review Occlusions</label>
+                        <div id="io-occlusion-list" class="h-40 bg-gray-50 dark:bg-gray-900/50 rounded-lg p-2 overflow-y-auto border dark:border-gray-700">
+                            <p id="io-placeholder" class="text-center text-gray-500 dark:text-gray-400 p-4">Selected text appears here.</p>
                         </div>
                     </div>
-                    <div class="mt-6 border-t pt-6">
-                        <label for="io-deck-name" class="block text-sm font-medium text-gray-700 mb-2">4. Export</label>
-                        <input type="text" id="io-deck-name" value="My Occlusion Deck" class="block w-full mb-4 border-gray-300 rounded-md shadow-sm">
+                    <div class="mt-6 border-t dark:border-gray-700 pt-6">
+                        <label for="io-deck-name" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">4. Export</label>
+                        <input type="text" id="io-deck-name" value="My Occlusion Deck" class="form-input mb-4">
                         <button id="io-export-button" disabled class="w-full bg-green-600 text-white font-bold py-3 px-4 rounded-lg transition hover:bg-green-700 disabled:opacity-50 disabled:bg-gray-500">Generate .apkg File</button>
                     </div>
                 </div>
-                <!-- IO Display --><div class="lg:col-span-2 bg-white p-4 rounded-lg shadow-md flex items-center justify-center min-h-[600px]">
+                <!-- IO Display -->
+                <div class="glass-card p-4 flex items-center justify-center min-h-[600px]">
                     <div id="io-image-container" class="hidden">
                         <img id="io-display-image" src="" alt="Uploaded image"/>
                         <canvas id="io-canvas"></canvas>
                     </div>
-                    <div id="io-upload-placeholder" class="text-center text-gray-500">
+                    <div id="io-upload-placeholder" class="text-center text-gray-500 dark:text-gray-400">
                         <svg class="mx-auto h-24 w-24 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48"><path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
                         <p class="mt-4 text-lg">Upload an image to start</p>
                     </div>
@@ -182,7 +243,8 @@
 
     </main>
 
-    <!-- === JAVASCRIPT === --><script>
+    <!-- === JAVASCRIPT === -->
+    <script>
         // --- App State ---
         let SQL;
         let tesseractWorker = null;
@@ -254,6 +316,7 @@
                 settingsModal.classList.remove('hidden');
             } else {
                 log("API Key loaded.");
+                settingsModal.classList.add('hidden'); // Hide modal if key is already set
             }
         }
 
@@ -359,6 +422,13 @@
         
         // --- Core: .apkg Packaging ---
         async function packageAndDownload(deckName, cards, mediaFiles = []) {
+            // FIX 1 CHECK: Check if genanki library is loaded
+            if (typeof genanki === 'undefined') {
+                log("ERROR: Anki packaging library (genanki.js) failed to load. Cannot create .apkg file.");
+                hideLoading();
+                return;
+            }
+
             if (!SQL) {
                 log("ERROR: Anki packager not ready. Please wait.");
                 alert("Anki packager not ready. Please wait a few seconds and try again.");
@@ -532,23 +602,22 @@
         let io_ocrResults = [], io_selected = [];
         let io_isManual = false, io_isDrawing = false, io_manualRect = {};
 
-        // Updated initTesseractWorker to explicitly set workerPath and langdata path
         async function initTesseractWorker() {
             log("Loading AI model for Image Occlusion (Tesseract.js)...");
-            // Specify the workerPath and langdata path explicitly from CDN for better reliability
+            showLoading("Loading Image Occlusion AI...");
+            
+            // This setup uses the default CDN paths which Tesseract.js v5 recommends
             tesseractWorker = await Tesseract.createWorker('eng', 1, {
-                workerPath: 'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/worker.min.js',
-                langPath: 'https://cdn.jsdelivr.net/npm/tesseract.js-lang/langdata',
                 logger: m => {
-                    if (m.status === 'recognizing text' || m.status === 'loading eng.traineddata') {
+                    if (m.status === 'recognizing text') {
                         showLoading(`Scanning image... ${Math.round(m.progress * 100)}%`);
-                    } else if (m.status === 'loading tesseract core') {
-                        showLoading(`Loading Tesseract core...`);
+                    } else if (m.status.startsWith('loading')) {
+                        showLoading(`Loading AI files... (${m.status})`);
                     }
                 }
             });
             log("Image Occlusion AI loaded.");
-            hideLoading(); // Hide loading after Tesseract is fully loaded
+            hideLoading();
         }
 
         io.upload.addEventListener('change', (e) => {
@@ -561,7 +630,7 @@
                     io.canvas.width = io.image.clientWidth; io.canvas.height = io.image.clientHeight;
                     io.container.classList.remove('hidden');
                     io.uploadPlaceholder.classList.add('hidden');
-                    io.scanBtn.disabled = false; io.scanBtn.classList.replace('bg-gray-500', 'bg-blue-600');
+                    io.scanBtn.disabled = false;
                     io.exportBtn.disabled = true; io_ocrResults = []; io_selected = []; io_updateList();
                     io_ctx.clearRect(0, 0, io.canvas.width, io.canvas.height);
                 };
@@ -571,9 +640,19 @@
 
         io.scanBtn.addEventListener('click', async () => {
             if (!tesseractWorker) { alert("AI Model is not ready. Please wait."); return; }
-            showLoading("Scanning image for text..."); // This will be updated by Tesseract's logger
+            showLoading("Scanning image for text..."); 
             try {
-                const { data } = await tesseractWorker.recognize(io.image.src);
+                // FIX 2: Added Page Segmentation Mode (PSM) 3 (AUTO)
+                // This helps Tesseract understand diagrams and non-standard text layouts.
+                const { data } = await tesseractWorker.recognize(io.image.src, {}, {
+                    tessedit_pageseg_mode: 3, // 3 = PSM_AUTO
+                });
+
+                if (data.words.length === 0) {
+                    log("Scan complete. No text found. (Try Manual Mode?)");
+                } else {
+                    log(`Scan complete. Found ${data.words.length} words.`);
+                }
                 io_ocrResults = data.lines.concat(data.words);
                 io_drawBoxes();
             } catch (err) { console.error(err); log(`ERROR: Image scanning failed. ${err.message}`); } 
@@ -599,26 +678,31 @@
         }
         function io_drawBoxes() {
             io_ctx.clearRect(0, 0, io.canvas.width, io.canvas.height);
+            // Draw all found text boxes in green
             for (const item of io_ocrResults) {
                 const { x, y, w, h } = io_scaleBbox(item.bbox);
                 io_ctx.strokeStyle = 'rgba(0, 255, 0, 0.5)'; io_ctx.lineWidth = 2; io_ctx.strokeRect(x, y, w, h);
             }
+            // Draw selected occlusion boxes in blue
             for (const occ of io_selected) {
                 if (occ.bbox) {
                     const { x, y, w, h } = io_scaleBbox(occ.bbox);
-                    io_ctx.fillStyle = 'rgba(2, 132, 199, 0.7)'; io_ctx.fillRect(x, y, w, h);
+                    io_ctx.fillStyle = 'rgba(30, 64, 175, 0.7)'; io_ctx.fillRect(x, y, w, h);
                 }
             }
         }
         function io_addOcclusion(text, bbox) {
-            // Check if text already exists to avoid duplicates
             if (io_selected.some(o => o.text === text && JSON.stringify(o.bbox) === JSON.stringify(bbox))) {
                 return; 
             }
             io_selected.push({ text, bbox }); io_updateList();
         }
         function io_removeOcclusion(text) {
-            io_selected = io_selected.filter(o => o.text !== text);
+            // Find and remove the specific occlusion by text
+            const indexToRemove = io_selected.findIndex(o => o.text === text);
+            if (indexToRemove > -1) {
+                io_selected.splice(indexToRemove, 1);
+            }
             io_updateList(); io_drawBoxes();
         }
         function io_updateList() {
@@ -629,10 +713,11 @@
                 io.placeholder.remove(); io.list.innerHTML = '';
                 io_selected.forEach(occ => {
                     const item = document.createElement('div');
-                    item.className = 'p-2 bg-blue-100 rounded text-sm mb-1 flex justify-between items-center';
+                    item.className = 'p-2 bg-indigo-100 dark:bg-indigo-900/50 rounded text-sm mb-1 flex justify-between items-center';
                     item.textContent = occ.text;
                     const btn = document.createElement('button');
                     btn.innerHTML = '&times;'; btn.className = 'font-bold text-red-500 pl-2';
+                    // Use an anonymous function to ensure we pass the correct text
                     btn.onclick = () => io_removeOcclusion(occ.text);
                     item.appendChild(btn); io.list.appendChild(item);
                 });
@@ -642,14 +727,19 @@
         io.canvas.addEventListener('mousedown', (e) => { if (io_isManual) { io_isDrawing = true; io_manualRect.startX = e.offsetX; io_manualRect.startY = e.offsetY; }});
         io.canvas.addEventListener('mousemove', (e) => {
             if (io_isManual && io_isDrawing) {
-                io_drawBoxes(); const { x, y } = io_manualRect; const w = e.offsetX - x; const h = e.offsetY - y;
-                io_ctx.strokeStyle = '#0284c7'; io_ctx.lineWidth = 2; io_ctx.strokeRect(x, y, w, h);
+                io_drawBoxes(); // Redraw boxes
+                const x = io_manualRect.startX;
+                const y = io_manualRect.startY;
+                const w = e.offsetX - x; 
+                const h = e.offsetY - y;
+                io_ctx.strokeStyle = '#c7d2fe'; io_ctx.lineWidth = 2; io_ctx.strokeRect(x, y, w, h);
             }
         });
         io.canvas.addEventListener('mouseup', (e) => {
             if (io_isManual && io_isDrawing) {
                 io_isDrawing = false;
                 const bbox = { x0: Math.min(io_manualRect.startX, e.offsetX), y0: Math.min(io_manualRect.startY, e.offsetY), x1: Math.max(io_manualRect.startX, e.offsetX), y1: Math.max(io_manualRect.startY, e.offsetY) };
+                
                 // Scale to natural size
                 const naturalBbox = {
                     x0: bbox.x0 * (io.image.naturalWidth / io.image.clientWidth), y0: bbox.y0 * (io.image.naturalHeight / io.image.clientHeight),
@@ -663,19 +753,31 @@
         io.canvas.addEventListener('click', (e) => {
             if (io_isManual || io_isDrawing) return;
             const { x, y } = io_getCanvasClick(e);
+            
+            // Find the smallest clicked box
+            let clickedItem = null;
+            let smallestArea = Infinity;
+
             for (const item of io_ocrResults) {
                 const { bbox } = item;
                 if (x >= bbox.x0 && x <= bbox.x1 && y >= bbox.y0 && y <= bbox.y1) {
-                    // Check if already selected, then remove
-                    const existingIndex = io_selected.findIndex(o => o.bbox && o.bbox.x0 === bbox.x0 && o.bbox.y0 === bbox.y0);
-                    if (existingIndex > -1) {
-                        io_selected.splice(existingIndex, 1);
-                    } else {
-                        io_addOcclusion(item.text.trim(), bbox);
+                    const area = (bbox.x1 - bbox.x0) * (bbox.y1 - bbox.y0);
+                    if (area < smallestArea) {
+                        smallestArea = area;
+                        clickedItem = item;
                     }
-                    io_drawBoxes(); // Redraw to update highlights
-                    return;
                 }
+            }
+
+            if (clickedItem) {
+                const { bbox, text } = clickedItem;
+                const existingIndex = io_selected.findIndex(o => o.bbox && o.bbox.x0 === bbox.x0 && o.bbox.y0 === bbox.y0);
+                if (existingIndex > -1) {
+                    io_selected.splice(existingIndex, 1);
+                } else {
+                    io_addOcclusion(text.trim(), bbox);
+                }
+                io_drawBoxes(); // Redraw to update highlights
             }
         });
         io.exportBtn.addEventListener('click', async () => {
@@ -686,12 +788,6 @@
                 const deckName = io.deckName.value || 'Image Occlusion Deck';
                 const deck = new genanki.Deck(Date.now(), deckName);
                 
-                // Convert image Blob to Base64 data URL for embedding
-                const reader = new FileReader();
-                reader.readAsDataURL(io_imageBlob);
-                await new Promise(resolve => reader.onloadend = resolve);
-                const imageDataUrl = reader.result;
-
                 const mediaFiles = [{ name: io_imageFilename, data: io_imageBlob }];
                 
                 let clozeText = '';
